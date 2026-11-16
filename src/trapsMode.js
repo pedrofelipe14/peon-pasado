@@ -14,6 +14,7 @@ export function createTraps({ setBoard, shapes, store, sfx }, el) {
     busy: false,
     fails: 0,
     done: store.get('pp:traps:done', {}),
+    guide: store.get('pp:traps:guide', true),
   };
 
   el.addEventListener('click', (e) => {
@@ -27,6 +28,12 @@ export function createTraps({ setBoard, shapes, store, sfx }, el) {
       background();
     } else if (b.dataset.a === 'retry') open(st.trap.id);
     else if (b.dataset.a === 'hint') hint();
+    else if (b.dataset.a === 'guide') {
+      st.guide = !st.guide;
+      store.set('pp:traps:guide', st.guide);
+      if (st.run) draw(st.run.myTurn && !st.busy);
+      render();
+    }
     else if (b.dataset.a === 'next') {
       const i = TRAPS.indexOf(st.trap);
       open(TRAPS[(i + 1) % TRAPS.length].id);
@@ -36,6 +43,7 @@ export function createTraps({ setBoard, shapes, store, sfx }, el) {
   const orientation = () => (st.trap.side === 'w' ? 'white' : 'black');
   function draw(interactive) {
     setBoard(st.run.fen, st.run.lastLan, { orientation: orientation(), movable: interactive ? orientation() : null });
+    if (interactive && st.guide) hint();
   }
   function background() {
     setBoard('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', null, { orientation: 'white', movable: null });
@@ -149,9 +157,10 @@ export function createTraps({ setBoard, shapes, store, sfx }, el) {
     if (run.history.length) html += `<p class="line">${moveList()}</p>`;
     if (st.note && !run.done) html += `<p class="trap-note">💡 ${esc(st.note)}</p>`;
     if (st.msg) html += `<p class="pz-msg ${st.msgKind}">${st.msg}</p>`;
-    else if (run.myTurn) html += `<p class="muted small">Tu turno.</p>`;
+    else if (run.myTurn && st.guide && !st.busy) html += `<p>Juega <b>${esc(run.current.s)}</b> (flecha azul).</p>`;
+    else if (run.myTurn) html += `<p class="muted small">Tu turno. ¿Cuál es la jugada?</p>`;
     html += '</div><div class="actions">';
-    if (!run.done) html += '<button data-a="hint">Pista</button><button data-a="retry" class="ghost">Reiniciar</button>';
+    if (!run.done) html += `<button data-a="guide" class="${st.guide ? 'on' : ''}" title="Mostrar u ocultar la jugada que toca">${st.guide ? '👁 Con guía' : '🧠 De memoria'}</button>${st.guide ? '' : '<button data-a="hint">Pista</button>'}<button data-a="retry" class="ghost">Reiniciar</button>`;
     else html += '<button data-a="next" class="primary">Siguiente trampa →</button><button data-a="retry">Repetir</button>';
     html += '</div>';
     el.innerHTML = html;
