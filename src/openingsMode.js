@@ -1,12 +1,16 @@
 // Modo "Aperturas" de la pestaña de ejercicios.
 import { Chess } from 'chess.js';
 import { FAMILIES, buildTree, OpeningDrill } from './openingDrill.js';
+import { ABOUT } from './openingAbout.js';
+import { createTraps } from './trapsMode.js';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const epd = (fen) => fen.split(' ').slice(0, 4).join(' ');
 
-export function createOpenings({ setBoard, shapes, store, $, sfx }) {
+export function createOpenings(ctx) {
+  const { setBoard, shapes, store, $, sfx } = ctx;
+  const traps = createTraps(ctx, $('#op-traps'));
   const st = {
     family: store.get('pp:op:family', 'italiana'),
     mode: store.get('pp:op:mode', 'learn'),
@@ -35,10 +39,25 @@ export function createOpenings({ setBoard, shapes, store, $, sfx }) {
     start();
   });
   document.querySelectorAll('.op-mode button').forEach((b) => b.addEventListener('click', () => {
+    const was = st.mode;
     st.mode = b.dataset.m;
     store.set('pp:op:mode', st.mode);
-    start();
+    if (layout()) return;
+    if (was === 'traps' && st.drill && !st.drill.finished) {
+      draw(st.drill.myTurn);
+      render();
+    } else start();
   }));
+
+  /** Muestra la sección de trampas o la de aperturas. Devuelve true si son las trampas. */
+  function layout() {
+    const t = st.mode === 'traps';
+    $('#op-traps').hidden = !t;
+    $('#op-drill').hidden = t;
+    document.querySelectorAll('.op-mode button').forEach((b) => b.classList.toggle('on', b.dataset.m === st.mode));
+    if (t) traps.show();
+    return t;
+  }
   $('#op-actions').addEventListener('click', (e) => {
     const b = e.target.closest('button');
     if (!b) return;
@@ -70,6 +89,7 @@ export function createOpenings({ setBoard, shapes, store, $, sfx }) {
   }
 
   function draw(interactive) {
+    if (st.mode === 'traps') return;
     setBoard(st.chess.fen(), st.last, {
       orientation: fam().side === 'w' ? 'white' : 'black',
       movable: interactive ? (fam().side === 'w' ? 'white' : 'black') : null,
@@ -152,6 +172,7 @@ export function createOpenings({ setBoard, shapes, store, $, sfx }) {
   }
 
   async function onMove(orig, dest) {
+    if (st.mode === 'traps') return traps.onMove(orig, dest);
     if (!st.drill || st.busy || !st.drill.myTurn) return;
     const before = st.chess.fen();
     let m;
@@ -200,6 +221,14 @@ export function createOpenings({ setBoard, shapes, store, $, sfx }) {
     const s = st.stats[f.id];
     let html = `<div class="pz-head"><span class="pz-turn ${f.side}"></span><div><b>${esc(f.name)}</b><div class="muted small">Juegas con ${sideName(f.side)} · ${st.mode === 'learn' ? 'la flecha te muestra la jugada' : 'de memoria'}</div></div></div>`;
     html += `<p class="small">${esc(f.desc)}</p>`;
+    const a = ABOUT[f.id];
+    if (a) {
+      html += `<details class="op-about"${(st.drill?.moves.length ?? 0) > 1 ? '' : ' open'}><summary>¿De qué se trata?</summary>`
+        + `<p><b>La idea:</b> ${esc(a.idea)}</p>`
+        + `<p><b>Planes típicos:</b></p><ul>${a.plans.map((p) => `<li>${esc(p)}</li>`).join('')}</ul>`
+        + `<p><b>Ojo con:</b> ${esc(a.watch)}</p>`
+        + `<p class="muted"><b>Para quién:</b> ${esc(a.who)}</p></details>`;
+    }
     if (st.busy && !st.drill) html += '<p class="muted">Cargando aperturas…</p>';
     if (st.drill) {
       if (st.posName) html += `<p class="op-name">📖 ${esc(st.posName)}</p>`;
@@ -222,6 +251,7 @@ export function createOpenings({ setBoard, shapes, store, $, sfx }) {
   return {
     onMove,
     show() {
+      if (layout()) return;
       if (!st.drill) start();
       else {
         draw(st.drill.myTurn && !st.drill.finished);

@@ -328,6 +328,12 @@ button.ghost { background: none; color: var(--muted); }
 .mode { display: flex; flex-direction: column; gap: 12px; }
 .op-mode button { flex: 1; }
 .op-name { font-weight: 700; color: #d9b98c; }
+.op-about { background: var(--panel-2); border-radius: 8px; padding: 8px 12px; font-size: 14px; }
+.op-about summary { cursor: pointer; font-weight: 700; color: var(--accent); }
+.op-about p { margin: 8px 0 4px; }
+.op-about ul { margin: 0 0 4px; padding-left: 20px; }
+.op-about li { margin: 2px 0; }
+.trap-note { background: var(--panel-2); border-left: 3px solid #d9b98c; border-radius: 6px; padding: 8px 10px; font-size: 14px; }
 .pz-msg.ok { color: var(--accent); }
 #mates h3 { margin: 4px 0 4px; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
 #mates h3 + p { margin: 0 0 8px; }

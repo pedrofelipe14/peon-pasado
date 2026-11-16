@@ -18,6 +18,8 @@ Todo el análisis corre en tu navegador con [Stockfish](https://stockfishchess.o
 
 La pestaña **Ejercicios** tiene tres modos: Táctica, Aperturas y Mates.
 
+En todos los tableros suenan las jugadas (mover, capturar, jaque, enroque, mate; se silencian con el botón 🔊) y puedes dibujar flechas y círculos con el click derecho (Shift o Alt cambian el color).
+
 ### Táctica
 
 El modo Táctica tiene un tablero donde mueves las piezas, con pistas, «ver solución», un rating que va subiendo y una racha de aciertos. Todo se guarda en tu navegador.
@@ -28,7 +30,9 @@ El modo Táctica tiene un tablero donde mueves las piezas, con pistas, «ver sol
 
 ### Aperturas
 
-Eliges una apertura entre 19 (Italiana, Española, Gambito de dama, Londres, Siciliana, Francesa, Caro-Kann, India de rey…) y la juegas con tu color. El rival responde con variantes reales de la base de lichess, elegidas al azar, y la página te dice en qué variante estás. Hay dos modos: **Aprender**, donde una flecha te muestra la jugada principal y otras flechas las alternativas, y **Practicar**, donde juegas de memoria.
+Eliges una apertura entre 19 (Italiana, Española, Gambito de dama, Londres, Siciliana, Francesa, Caro-Kann, India de rey…) y la juegas con tu color. El rival responde con variantes reales de la base de lichess, elegidas al azar, y la página te dice en qué variante estás. Hay dos modos: **Aprender**, donde una flecha te muestra la jugada principal y otras flechas las alternativas, y **Practicar**, donde juegas de memoria. Cada apertura explica de qué se trata: la idea, los planes típicos, qué vigilar y para qué tipo de jugador es.
+
+En **Trampas** hay trampas para tenderle al rival (mate de Légal, Blackburne-Shilling, trampa del elefante, gambito Englund, Nd6# en la Caro-Kann, mate del pastor) y lecciones para defenderte de las más comunes. Si juegas el error tentador, la página te explica qué te iba a pasar.
 
 ### Mates
 

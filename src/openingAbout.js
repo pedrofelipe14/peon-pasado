@@ -1,0 +1,117 @@
+// Para qué sirve cada apertura: la idea, los planes típicos, qué vigilar y para quién es.
+export const ABOUT = {
+  italiana: {
+    idea: 'Desarrollar rápido, enrocar y presionar f7, el punto más débil de las negras al comienzo (solo lo defiende el rey).',
+    plans: ['c3 y d4 para armar un centro de peones', 'Juego lento con d3, Nbd2-f1-g3 y presión en el flanco de rey', 'Ataques directos (Ng5, Fried Liver) si las negras se descuidan'],
+    watch: 'La trampa Blackburne-Shilling (…Nd4) y no sacar la dama demasiado pronto.',
+    who: 'Ideal para empezar: las ideas son naturales y te enseña a desarrollar.',
+  },
+  espanola: {
+    idea: 'Presionar al caballo de c6, que es el que defiende e5, para ganar influencia duradera en el centro.',
+    plans: ['Enroque, Re1 y c3 para preparar d4', 'Maniobra Nbd2-f1-g3 para llevar piezas al flanco de rey', 'Presión lenta: las ventajas en la Española se acumulan de a poco'],
+    watch: 'Bb5 no gana el peón de e5 enseguida (Bxc6 y Nxe5 no funciona sin enrocar antes). Cuidado con la trampa del Arca de Noé: el alfil puede quedar encerrado en b3 por …a6, …b5 y …c4.',
+    who: 'Para quien quiere entender el ajedrez posicional. Es la apertura de los campeones del mundo.',
+  },
+  escocesa: {
+    idea: 'Abrir el centro con 3.d4 enseguida: se cambia el peón de e5 y las piezas blancas salen libres.',
+    plans: ['Desarrollo rápido y enroque', 'Usar el espacio extra y la columna e abierta', 'Atacar el caballo de c6 o f6 con e5 en algunas líneas'],
+    watch: 'Después de Nxd4 tu caballo queda centralizado pero expuesto a ataques (…Bc5, …Qh4 en algunas líneas).',
+    who: 'Para quien quiere posiciones abiertas y claras, sin mucha teoría.',
+  },
+  vienesa: {
+    idea: 'Defender e4 con el caballo y preparar f4, para atacar el centro negro desde el costado como en el gambito de rey, pero con menos riesgo.',
+    plans: ['f4 para abrir la columna f', 'Bc4 apuntando a f7', 'Sistema tranquilo con g3 y Bg2'],
+    watch: 'Si las negras juegan …d5 a tiempo, el centro se abre y hay que saber las líneas.',
+    who: 'Para quien quiere sorprender y atacar sin arriesgar tanto.',
+  },
+  'gambito-rey': {
+    idea: 'Entregar el peón de f para sacar al peón negro de e5, dominar el centro con d4 y atacar por la columna f.',
+    plans: ['Nf3, Bc4 y enroque rápido', 'd4 para levantar un centro grande', 'Presión sobre f7 con alfil, caballo y torre'],
+    watch: 'Tu rey queda más expuesto (la diagonal e1-h4 se abre: ojo con …Qh4+).',
+    who: 'Para atacantes. Es romántico, filoso y divertido en partidas rápidas.',
+  },
+  'gambito-dama': {
+    idea: 'Ofrecer el peón de c para desviar el peón de d5 y quedarse con el centro. No es un gambito real: el peón se recupera casi siempre.',
+    plans: ['Nc3, Bg5 y e3 con presión sobre d5', 'El ataque de minorías: b4-b5 contra los peones del flanco de dama', 'Ocupar el centro con e4 si las negras toman en c4'],
+    watch: 'La trampa del elefante: no comas en d5 a la ligera cuando hay una «clavada» en f6.',
+    who: 'Para quien prefiere posiciones sólidas con planes estratégicos claros.',
+  },
+  londres: {
+    idea: 'Montar siempre el mismo esquema (d4, Bf4, e3, Nf3, c3, Bd3) sin importar lo que haga el rival.',
+    plans: ['Armar la pirámide de peones c3-d4-e3', 'Ne5 y f4 para atacar el flanco de rey', 'Bd3 y Qc2 apuntando a h7'],
+    watch: 'Si las negras atacan b2 con …Qb6 temprano, hay que saber defenderlo (Qb3 o Nc3).',
+    who: 'Para quien quiere estudiar poco teoría y jugar planes que se repiten.',
+  },
+  inglesa: {
+    idea: 'Controlar d5 desde el costado con c4 en vez de ocupar el centro con peones. Se juega «al revés»: primero el flanco, después el centro.',
+    plans: ['Fianchetto con g3 y Bg2 apuntando al centro y al flanco de dama', 'Avance de peones b4-b5 en el flanco de dama', 'd4 o e4 más tarde, cuando el rival se comprometió'],
+    watch: 'Si las negras ocupan el centro con …e5 y …d5, hay que tener paciencia y atacarlo desde los costados.',
+    who: 'Para jugadores posicionales y flexibles.',
+  },
+  siciliana: {
+    idea: 'Cambiar un peón lateral (c) por uno central (d) para quedarte con más peones en el centro y una posición desequilibrada donde jugar a ganar.',
+    plans: ['La columna c semiabierta para atacar en el flanco de dama', '…d6, …Nf6, …a6 y …b5 para expandirte', 'Golpes en el centro con …d5 o …e5 en el momento justo'],
+    watch: 'Las blancas suelen atacar tu rey con todo (f4, g4, enroque largo). Hay que saber la teoría de tu variante.',
+    who: 'Para quien quiere jugar a ganar con negras y no le teme a posiciones complicadas.',
+  },
+  francesa: {
+    idea: 'Preparar …d5 con …e6 para discutir el centro con una estructura de peones muy sólida.',
+    plans: ['Atacar la cadena de peones blanca en la base con …c5 y …f6', 'Contraataque en el flanco de dama', 'Liberar el alfil de c8 (a veces con …b6 y …Ba6)'],
+    watch: 'Tu alfil de casillas blancas queda encerrado detrás de e6: es el problema típico de la Francesa.',
+    who: 'Para jugadores pacientes a los que les gustan las estructuras de peones claras.',
+  },
+  'caro-kann': {
+    idea: 'Como la Francesa, preparar …d5, pero con …c6 para que el alfil de c8 pueda salir antes de cerrar con …e6.',
+    plans: ['Sacar el alfil a f5 o g4 antes de …e6', 'Estructura sólida y final bueno', 'Contraataque con …c5 más adelante'],
+    watch: 'La trampa Nd6# en la línea con Qe2: no juegues …Ngf6 si el peón de e7 está clavado.',
+    who: 'Para quien quiere una defensa sólida y con pocas sorpresas.',
+  },
+  escandinava: {
+    idea: 'Atacar e4 de inmediato con …d5 para que las blancas no puedan armar el centro ideal.',
+    plans: ['Recuperar el peón con la dama (…Qxd5) y moverla a a5 o d6', 'Desarrollo con …Nf6, …c6 y …Bf5', 'Estructura parecida a la Caro-Kann'],
+    watch: 'Tu dama sale temprano y las blancas ganan tiempo atacándola con Nc3: no la dejes en lugares donde la persigan.',
+    who: 'Para quien quiere evitar la teoría de 1.e4 e5 y la Siciliana con un plan simple.',
+  },
+  petrov: {
+    idea: 'En lugar de defender e5, contraatacar e4 con …Nf6. Lleva a posiciones simétricas y muy sólidas.',
+    plans: ['Recuperar el peón con …d6 antes de comer en e4', 'Desarrollo simétrico y enroque', 'Jugar por un final igualado y sin riesgos'],
+    watch: 'No comas en e4 enseguida después de Nxe5: primero …d6, si no Qe2 te clava el caballo y pierdes material.',
+    who: 'Para quien quiere empatar con seguridad con negras o jugar con calma.',
+  },
+  alekhine: {
+    idea: 'Provocar: el caballo invita a los peones blancos a avanzar para después atacar ese centro que quedó demasiado adelantado.',
+    plans: ['Mover el caballo cuando lo ataquen (d5, b6)', '…d6 para romper el centro blanco', 'Presión con piezas sobre los peones avanzados'],
+    watch: 'Si las blancas sostienen el centro, te pueden ahogar por falta de espacio.',
+    who: 'Para jugadores provocadores que conocen bien la teoría.',
+  },
+  pirc: {
+    idea: 'Dejar que las blancas ocupen el centro y atacarlo después, con el alfil en fianchetto (g7) muy fuerte en la diagonal larga.',
+    plans: ['…d6, …Nf6, …g6, …Bg7 y enroque', 'Golpe en el centro con …e5 o …c5', 'Contraataque en el flanco de dama'],
+    watch: 'Las blancas pueden atacar con f4-e5 o con Be3, Qd2 y Bh6. Hay que reaccionar a tiempo.',
+    who: 'Para jugadores que prefieren contraatacar.',
+  },
+  'india-rey': {
+    idea: 'Ceder el centro al principio, terminar el desarrollo y atacarlo después con …e5 o …c5. Muy a menudo, ataque con peones al rey blanco.',
+    plans: ['Fianchetto en g7 y enroque rápido', '…e5 y después …f5 para atacar en el flanco de rey', 'Ataques de peones al rey mientras las blancas atacan en el otro flanco'],
+    watch: 'Es una carrera: si tu ataque llega tarde, las blancas rompen en el flanco de dama.',
+    who: 'Para atacantes con negras contra 1.d4.',
+  },
+  nimzo: {
+    idea: 'Clavar el caballo de c3 con …Bb4 para controlar e4 y, si conviene, cambiar el alfil por el caballo y dejar a las blancas con peones doblados.',
+    plans: ['Controlar e4 con piezas (…Ne4, …b6 y …Bb7)', 'Cambiar en c3 y atacar los peones doblados', 'Juego flexible en el centro con …d5 o …c5'],
+    watch: 'Si cambias el alfil, las blancas quedan con la pareja de alfiles: cierra la posición para que no la aprovechen.',
+    who: 'Para jugadores posicionales; es una de las defensas más respetadas.',
+  },
+  eslava: {
+    idea: 'Sostener el peón de d5 con …c6 en lugar de …e6, para que el alfil de c8 pueda salir.',
+    plans: ['…Bf5 o …Bg4 antes de …e6', 'A veces tomar en c4 y defender el peón con …b5', 'Estructura sólida con …e6 después de sacar el alfil'],
+    watch: 'Si tomas en c4 sin plan para sostenerlo, las blancas lo recuperan con buena posición.',
+    who: 'Para quien quiere solidez contra el gambito de dama sin encerrar ninguna pieza.',
+  },
+  holandesa: {
+    idea: 'Controlar e4 con el peón de f y preparar un ataque en el flanco de rey. Es asimétrica: se juega a ganar.',
+    plans: ['…Nf6, …e6 y …Be7 (Stonewall con …d5)', 'Ataque al rey con …Qe8-h5', '…e5 en el momento justo para abrir el centro'],
+    watch: 'La diagonal e8-h5 queda abierta y tu rey es más vulnerable: cuidado con los jaques en h5.',
+    who: 'Para jugadores agresivos con negras contra 1.d4.',
+  },
+};

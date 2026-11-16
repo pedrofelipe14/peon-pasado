@@ -36,15 +36,19 @@
           <button type="button" data-mode="mates">Mates</button>
         </div>
         <div id="mode-openings" class="mode" hidden>
-          <div class="pz-options">
-            <label>Apertura <select id="op-family"></select></label>
-          </div>
           <div class="seg op-mode">
             <button type="button" data-m="learn">Aprender</button>
             <button type="button" data-m="practice">Practicar</button>
+            <button type="button" data-m="traps">Trampas</button>
           </div>
-          <div id="op-card" class="explain"></div>
-          <div id="op-actions" class="actions"></div>
+          <div id="op-drill" class="mode">
+            <div class="pz-options">
+              <label>Apertura <select id="op-family"></select></label>
+            </div>
+            <div id="op-card" class="explain"></div>
+            <div id="op-actions" class="actions"></div>
+          </div>
+          <div id="op-traps" class="mode" hidden></div>
         </div>
         <div id="mode-mates" class="mode" hidden><div id="mates"></div></div>
         <div id="mode-tactics" class="mode">
