@@ -11,6 +11,8 @@ import { explainMove, evalWords, uciMove } from './explain.js';
 import { EnginePool, defaultPoolSize } from './engine.js';
 import { parseInput, fetchLichessGame, findChessComGame, recentGames, LoadError } from './games.js';
 import { drawGraph, graphPlyAt } from './graph.js';
+import { mistakesFromGame } from './puzzles.js';
+import { initTrainer, saveMine } from './trainer.js';
 
 const $ = (sel) => document.querySelector(sel);
 const DEPTHS = {
@@ -46,6 +48,7 @@ const state = {
   analyzed: 0, toAnalyze: 0, settingsKey: store.get('pp:depth', 'normal'), cacheKey: null,
   platform: store.get('pp:platform', 'chesscom'), source: null,
   variation: null, // { title, fens, ucis, sans, idx, score, rootFen }
+  myColor: null, gamePuzzles: [],
 };
 
 let openingDb = null;
@@ -372,6 +375,7 @@ function renderSummary(acc) {
       <div class="acc-box b"><span class="acc-num">${a(acc?.b)}</span><span class="acc-name">${esc(h.Black || 'Negras')}</span></div>
     </div>
     <table class="counts">${rows.join('')}</table>
+    ${state.gamePuzzles.length ? `<button class="practice primary" data-x="practice">🧩 Practicar ${state.myColor ? 'mis errores' : 'los errores'} de esta partida (${state.gamePuzzles.length})</button>` : ''}
     ${moments.length ? `<h3>Momentos clave</h3><div class="moments">${moments.join('')}</div>` : ''}
     ${state.opening ? `<p class="muted small center">${esc(state.opening.eco)} · ${esc(state.opening.name)}</p>` : ''}
     <details class="legend"><summary>¿Qué significa cada símbolo?</summary>
@@ -473,7 +477,11 @@ async function startGame(pgn, meta = {}) {
   }
 
   const me = (meta.user || '').toLowerCase();
-  state.orientation = me && (state.headers.Black || '').toLowerCase() === me ? 'black' : 'white';
+  const myBlack = me && (state.headers.Black || '').toLowerCase() === me;
+  const myWhite = me && (state.headers.White || '').toLowerCase() === me;
+  state.orientation = myBlack ? 'black' : 'white';
+  state.myColor = myBlack ? 'b' : myWhite ? 'w' : null;
+  state.gamePuzzles = [];
   state.ply = 0;
   $('#review').hidden = false;
   $('#intro').hidden = true;
@@ -495,7 +503,11 @@ async function startGame(pgn, meta = {}) {
   recompute();
   render();
   $('#board').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  if (!jobs.length) return;
+  if (!jobs.length) {
+    finishGame();
+    render();
+    return;
+  }
 
   const pool = new EnginePool(defaultPoolSize());
   state.pool = pool;
@@ -512,7 +524,20 @@ async function startGame(pgn, meta = {}) {
   pool.terminate();
   state.pool = null;
   saveCache();
+  recompute();
+  finishGame();
   scheduleRender();
+}
+
+/** Cuando el análisis termina: guarda los errores como ejercicios. */
+function finishGame() {
+  if (!state.results.every(Boolean)) return;
+  const h = state.headers;
+  const date = h.Date && !h.Date.includes('?') ? ` · ${h.Date.replace(/./g, '/')}` : '';
+  const label = `${h.White || '?'} vs ${h.Black || '?'}${date}`;
+  state.gamePuzzles = mistakesFromGame(state.moves, state.positions, state.results, { onlyColor: state.myColor, label });
+  if (state.myColor) saveMine(state.gamePuzzles);
+  trainer.refresh();
 }
 
 function saveCache() {
@@ -651,7 +676,7 @@ $('#moves').addEventListener('click', (e) => {
 });
 
 // botones dentro del panel de explicación y del resumen
-$('.panel').addEventListener('click', (e) => {
+$('#review-panel').addEventListener('click', (e) => {
   const b = e.target.closest('button');
   if (!b) return;
   if (b.dataset.vidx) {
@@ -682,6 +707,10 @@ $('.panel').addEventListener('click', (e) => {
   } else if (x === 'vprev') stepVariation(-1);
   else if (x === 'vnext') stepVariation(1);
   else if (x === 'vexit') exitVariation();
+  else if (x === 'practice') {
+    location.hash = 'ejercicios';
+    trainer.practice(state.gamePuzzles, `${state.headers.White || '?'} vs ${state.headers.Black || '?'}`);
+  }
   else if (x === 'nextkey') {
     const k = firstKey(p);
     if (k != null) goto(k);
@@ -713,7 +742,7 @@ $('#nav').addEventListener('click', (e) => {
 $('#nav [data-act=engine]').classList.toggle('on', state.showEngine);
 
 document.addEventListener('keydown', (e) => {
-  if (e.target.closest('input, textarea, select') || $('#review').hidden) return;
+  if (e.target.closest('input, textarea, select') || $('#review').hidden || $('#tab-review').hidden) return;
   if (state.variation) {
     if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
       e.preventDefault();
@@ -743,8 +772,26 @@ function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 }
 
+/* ---------- pestañas ---------- */
+const trainer = initTrainer();
+function showTab() {
+  const puzzles = location.hash === '#ejercicios';
+  $('#tab-review').hidden = puzzles;
+  $('#tab-puzzles').hidden = !puzzles;
+  document.querySelectorAll('.tabs a').forEach((a) => a.classList.toggle('on', (a.dataset.tab === 'puzzles') === puzzles));
+  if (puzzles) trainer.show();
+  else if (state.positions.length) render();
+}
+window.addEventListener('hashchange', showTab);
+document.querySelector('.tabs [data-tab=review]').addEventListener('click', (e) => {
+  e.preventDefault();
+  location.hash = state.source ? encodeURIComponent(state.source) : '';
+  showTab();
+});
+
 /* ---------- inicio ---------- */
 selectPlatform(state.platform);
+showTab();
 const fromHash = decodeURIComponent(location.hash.slice(1));
 if (/^https?:\/\//.test(fromHash)) {
   $('#game-input').value = fromHash;

@@ -14,6 +14,16 @@ Todo el análisis corre en tu navegador con [Stockfish](https://stockfishchess.o
 - Cada jugada viene explicada en palabras simples: qué te podía hacer el rival («Ahora el rival puede comer tu caballo con Qxg5»), qué hacía la mejor jugada y cómo cambió la posición («Antes: posición igualada → Ahora: ventaja clara de las negras»). El resumen lista los momentos clave de la partida, y «Pista» muestra la mejor jugada en cualquier posición.
 - Navegación: ← → para moverte por las jugadas, ↑ ↓ para ir al inicio o al final, F para girar el tablero. Puedes tocar el gráfico de evaluación para saltar a una jugada.
 
+## Ejercicios
+
+La pestaña **Ejercicios** tiene un tablero donde mueves las piezas, con pistas, «ver solución», un rating que va subiendo y una racha de aciertos. Todo se guarda en tu navegador.
+
+- **Lichess**: ejercicios de la base pública de lichess. Puedes elegir el tema (mate en 2, ataque doble, clavada, finales…) y la dificultad.
+- **Mis errores**: cada error, error grave u oportunidad perdida de tus partidas analizadas se vuelve un ejercicio («En la partida jugaste Nf6. ¿Qué era mejor?»). Se guardan solo tus jugadas cuando la página sabe cuál es tu usuario.
+- **Del día**: el ejercicio diario de lichess.
+
+Al terminar un análisis, el botón «🧩 Practicar los errores de esta partida» te lleva directo a resolverlos.
+
 ## Cómo clasifica
 
 Cada posición se analiza con dos líneas (MultiPV 2). Las evaluaciones se pasan a probabilidad de ganar con la curva de lichess, y la clasificación sale de cuánto baja esa probabilidad con cada jugada:

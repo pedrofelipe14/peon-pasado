@@ -9,6 +9,11 @@ class EngineWorker {
     this.worker = new Worker(ENGINE_URL);
     this.listener = null;
     this.worker.onmessage = (e) => this.listener?.(String(e.data));
+    // Si el worker se cae (por ejemplo, sin memoria), lo avisamos para reemplazarlo.
+    this.failed = new Promise((_, reject) => {
+      this.worker.onerror = (e) => reject(new Error(e.message || 'el motor se detuvo'));
+    });
+    this.failed.catch(() => {});
     this.ready = this.handshake();
   }
 
@@ -67,6 +72,8 @@ class EngineWorker {
   }
 }
 
+const timeout = (ms) => new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms));
+
 export class EnginePool {
   constructor(size) {
     this.size = size;
@@ -80,15 +87,29 @@ export class EnginePool {
    */
   async run(jobs, settings, onResult) {
     const queue = [...jobs];
-    const loop = async (w) => {
+    // Tiempo máximo por posición: si un motor no contesta, se reemplaza.
+    const limit = settings.movetime * 3 + 15000;
+    const loop = async (slot) => {
       while (queue.length && !this.closed) {
         const job = queue.shift();
-        const res = await w.analyze(job.fen, settings);
+        const w = this.workers[slot];
+        let res;
+        try {
+          res = await Promise.race([w.analyze(job.fen, settings), w.failed, timeout(limit)]);
+        } catch (e) {
+          if (this.closed) return;
+          w.terminate();
+          this.workers[slot] = new EngineWorker();
+          job.tries = (job.tries ?? 0) + 1;
+          if (job.tries <= 2) queue.push(job);
+          else onResult(job.index, { lines: [], depth: 0, error: e.message });
+          continue;
+        }
         if (this.closed) return;
         onResult(job.index, res);
       }
     };
-    await Promise.all(this.workers.map(loop));
+    await Promise.all(this.workers.map((_, slot) => loop(slot)));
   }
 
   terminate() {

@@ -16,9 +16,40 @@
         <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="currentColor"/><path d="M16 6a4 4 0 0 0-2.4 7.2C11.7 14.3 11 16 11 18h10c0-2-.7-3.7-2.6-4.8A4 4 0 0 0 16 6zm-6 14v2h12v-2zm-1 4v2h14v-2z" fill="var(--bg)"/></svg>
         <span>Peón Pasado</span>
       </a>
-      <span class="tag">Análisis gratis de partidas · Stockfish en tu navegador</span>
+      <nav class="tabs">
+        <a href="#" data-tab="review" class="on">Analizar</a>
+        <a href="#ejercicios" data-tab="puzzles">Ejercicios</a>
+      </nav>
+      <span class="tag">Stockfish en tu navegador · gratis</span>
     </header>
 
+    <main id="tab-puzzles" class="trainer" hidden>
+      <div class="board-col">
+        <div class="board-row"><div class="board-box pz-box"><div id="pboard" class="cgb"></div></div></div>
+        <p class="hint">Arrastra o toca las piezas para mover.</p>
+      </div>
+      <aside class="panel">
+        <div class="pz-stats">
+          <div><span>Rating</span><b id="pz-rating">1500</b></div>
+          <div><span>Racha</span><b id="pz-streak">0</b></div>
+          <div><span>Resueltos</span><b id="pz-solved">0</b></div>
+        </div>
+        <div class="seg pz-source" role="group" aria-label="De dónde salen los ejercicios">
+          <button type="button" data-src="lichess">Lichess</button>
+          <button type="button" data-src="mine">Mis errores <span id="pz-mine-count"></span></button>
+          <button type="button" data-src="daily">Del día</button>
+        </div>
+        <div id="pz-options" class="pz-options">
+          <label>Tema <select id="pz-theme"></select></label>
+          <label>Dificultad <select id="pz-diff"></select></label>
+        </div>
+        <div id="pz-card" class="explain"></div>
+        <div id="pz-actions" class="actions"></div>
+        <div id="pz-history" class="pz-history" title="Últimos ejercicios"></div>
+      </aside>
+    </main>
+
+    <div id="tab-review">
     <section class="loader">
       <form id="load-form" class="load-form">
         <input id="game-input" type="text" autocomplete="off" spellcheck="false"
@@ -59,7 +90,7 @@
         <div id="player-top" class="player"></div>
         <div class="board-row">
           <div id="evalbar" class="evalbar"><span id="evalbar-text"></span></div>
-          <div id="board-box" class="board-box"><div id="board"></div></div>
+          <div id="board-box" class="board-box"><div id="board" class="cgb"></div></div>
         </div>
         <div id="player-bottom" class="player"></div>
         <div id="nav" class="nav">
@@ -73,7 +104,7 @@
         <p class="hint">← → para moverte · toca cualquier jugada para verla · «Pista» muestra la mejor jugada en cada posición</p>
       </div>
 
-      <aside class="panel">
+      <aside id="review-panel" class="panel">
         <div id="progress" class="progress" hidden></div>
         <div id="explain" class="explain"></div>
         <canvas id="graph" class="graph" title="Evaluación de la partida"></canvas>
@@ -81,6 +112,7 @@
         <div id="summary" class="summary"></div>
       </aside>
     </main>
+    </div>
 
     <footer class="foot">
       <p>Todo el análisis corre en tu computadora con <a href="https://stockfishchess.org" target="_blank" rel="noopener">Stockfish</a> (GPLv3, vía stockfish.js). Aperturas de <a href="https://github.com/lichess-org/chess-openings" target="_blank" rel="noopener">lichess-org/chess-openings</a> (CC0). Sin relación con chess.com ni lichess: solo usa sus APIs públicas.</p>
