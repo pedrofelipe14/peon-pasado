@@ -414,5 +414,10 @@ export function initTrainer() {
       next();
     },
     refresh: renderSourceButtons,
+    /** Elige el modo que se abre la próxima vez que se muestra la pestaña. */
+    preset(mode) {
+      st.mode = mode;
+      store.set('pp:pz:mode', mode);
+    },
   };
 }

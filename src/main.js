@@ -47,7 +47,7 @@ const state = {
   moves: [], positions: [], results: [], book: [], opening: null, headers: {},
   ply: 0, orientation: 'white', pool: null, showEngine: store.get('pp:engine', false),
   analyzed: 0, toAnalyze: 0, settingsKey: store.get('pp:depth', 'normal'), cacheKey: null,
-  platform: store.get('pp:platform', 'chesscom'), source: null,
+  platform: store.get('pp:platform', 'chesscom') === 'lichess' ? 'lichess' : 'chesscom', source: null,
   variation: null, // { title, fens, ucis, sans, idx, score, rootFen }
   myColor: null, gamePuzzles: [],
 };
@@ -612,7 +612,7 @@ function currentUser(platform) {
 function selectPlatform(p) {
   state.platform = p;
   store.set('pp:platform', p);
-  document.querySelectorAll('.seg button').forEach((b) => b.classList.toggle('on', b.dataset.platform === p));
+  document.querySelectorAll('#mine-form .seg button').forEach((b) => b.classList.toggle('on', b.dataset.platform === p));
   $('#username').value = store.get(`pp:user:${p}`, '');
   $('#username').placeholder = p === 'lichess' ? 'Tu usuario de lichess' : 'Tu usuario de chess.com';
 }
@@ -663,7 +663,7 @@ $('#depth').addEventListener('change', (e) => {
   state.settingsKey = e.target.value;
   store.set('pp:depth', state.settingsKey);
 });
-document.querySelectorAll('.seg button').forEach((b) => b.addEventListener('click', () => selectPlatform(b.dataset.platform)));
+document.querySelectorAll('#mine-form .seg button').forEach((b) => b.addEventListener('click', () => selectPlatform(b.dataset.platform)));
 $('#mine-form').addEventListener('submit', (e) => {
   e.preventDefault();
   showMyGames();
@@ -671,10 +671,15 @@ $('#mine-form').addEventListener('submit', (e) => {
 $('#game-list').addEventListener('click', (e) => {
   const b = e.target.closest('button[data-i]');
   if (!b) return;
+  document.body.classList.remove('show-mine');
   const g = lastList[+b.dataset.i];
   $('#game-input').value = g.url;
   location.hash = encodeURIComponent(g.url);
   startGame(g.pgn, { url: g.url, user: $('#username').value.trim() });
+});
+$('#show-mine').addEventListener('click', () => {
+  document.body.classList.toggle('show-mine');
+  if (document.body.classList.contains('show-mine')) $('#username').focus();
 });
 $('#example').addEventListener('click', () => {
   $('#game-input').value = '';
@@ -810,6 +815,36 @@ document.querySelector('.tabs [data-tab=review]').addEventListener('click', (e) 
   e.preventDefault();
   location.hash = state.source ? encodeURIComponent(state.source) : '';
   showTab();
+});
+
+/* ---------- portada ---------- */
+function heroBoard() {
+  const c = new Chess();
+  c.loadPgn(EXAMPLE_PGN);
+  const m = c.history({ verbose: true }).find((x) => x.san === 'Qb8+');
+  if (!m) return;
+  const hero = Chessground($('#hero-board'), {
+    fen: m.after,
+    viewOnly: true,
+    coordinates: false,
+    lastMove: [m.from, m.to],
+    drawable: { enabled: false, visible: true, brushes: { best: { key: 'bst', color: '#7cbf4b', opacity: 0.85, lineWidth: 11 } } },
+  });
+  hero.setAutoShapes([
+    { orig: 'b8', customSvg: { html: badgeSvg('brilliant') } },
+    { orig: 'd1', dest: 'd8', brush: 'best' },
+  ]);
+}
+heroBoard();
+$('#intro').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-go]');
+  if (!b) return;
+  const [mode, sub] = b.dataset.go.split(':');
+  trainer.preset(mode);
+  location.hash = 'ejercicios';
+  showTab();
+  if (sub) document.querySelector(`.op-mode [data-m=${sub}]`)?.click();
+  window.scrollTo({ top: 0 });
 });
 
 /* ---------- inicio ---------- */

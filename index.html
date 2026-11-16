@@ -12,7 +12,7 @@
   </head>
   <body>
     <header class="top">
-      <a class="brand" href="./">
+      <a class="brand" href="./" aria-label="Peón Pasado, inicio">
         <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="currentColor"/><path d="M16 6a4 4 0 0 0-2.4 7.2C11.7 14.3 11 16 11 18h10c0-2-.7-3.7-2.6-4.8A4 4 0 0 0 16 6zm-6 14v2h12v-2zm-1 4v2h14v-2z" fill="var(--bg)"/></svg>
         <span>Peón Pasado</span>
       </a>
@@ -84,6 +84,7 @@
           <option value="deep">Profundo</option>
         </select>
         <button type="submit" class="primary">Analizar</button>
+        <button type="button" id="show-mine" class="mine-toggle" title="Elegir una de tus partidas">Mis partidas</button>
       </form>
 
       <form id="mine-form" class="mine">
@@ -100,13 +101,33 @@
     </section>
 
     <section id="intro" class="intro">
-      <h1>Descubre en qué jugada se te escapó la partida</h1>
+      <div class="hero">
+        <div class="hero-text">
+          <p class="kicker">Gratis · sin registrarte · sin límites</p>
+          <h1>Descubre en qué jugada se te escapó la partida</h1>
+          <p class="lead">Pega el link de tu partida de chess.com o lichess y Stockfish revisa cada jugada en tu navegador: brillantes, errores, oportunidades perdidas y qué tenías que jugar en cada momento.</p>
+          <div class="hero-cta">
+            <button id="example" type="button" class="primary">Probar con la partida de la Ópera →</button>
+            <a class="ghost-link" href="#ejercicios">Ir a los ejercicios</a>
+          </div>
+        </div>
+        <figure class="hero-board">
+          <div class="board-box"><div id="hero-board" class="cgb"></div></div>
+          <figcaption><i class="badge" style="--c:#26c2a3">!!</i> Morphy, 1858: <b>16. Qb8+</b>, la dama se entrega y <b>Rd8</b> es mate.</figcaption>
+        </figure>
+      </div>
       <ol class="steps">
-        <li><b>1</b><span><strong>Pega el link</strong> de tu partida de chess.com o lichess (o elige una de <em>Mis partidas</em>).</span></li>
-        <li><b>2</b><span><strong>El motor revisa cada jugada</strong> y le pone una marca: ★ mejor, ?! imprecisión, ? error, ?? error grave…</span></li>
-        <li><b>3</b><span><strong>Toca «Ver la mejor jugada»</strong> en tus errores para ver qué tenías que jugar, movida a movida.</span></li>
+        <li><b>1</b><span><strong>Pega el link</strong> de tu partida o elige una de <em>Mis partidas</em> con tu usuario.</span></li>
+        <li><b>2</b><span><strong>El motor revisa cada jugada</strong> y le pone una marca: <i class="badge" style="--c:#7cbf4b">★</i> mejor, <i class="badge" style="--c:#f2c14e">?!</i> imprecisión, <i class="badge" style="--c:#ef8f2f">?</i> error, <i class="badge" style="--c:#d63b36">??</i> error grave…</span></li>
+        <li><b>3</b><span><strong>Mira la mejor jugada</strong> en tus errores, movida a movida, y practícalos después como ejercicios.</span></li>
       </ol>
-      <button id="example" type="button">Probar con una partida famosa (Morphy, 1858)</button>
+      <h2 class="section-title">Y para entrenar</h2>
+      <div class="features">
+        <button type="button" class="feature" data-go="tactics"><span class="f-icon">⚡</span><b>Táctica</b><span>Ejercicios de lichess por tema y dificultad, o hechos con tus propios errores.</span></button>
+        <button type="button" class="feature" data-go="openings:learn"><span class="f-icon">📖</span><b>Aperturas</b><span>19 aperturas con su idea y sus planes. Juégalas con flechas o de memoria.</span></button>
+        <button type="button" class="feature" data-go="openings:traps"><span class="f-icon">🎣</span><b>Trampas</b><span>Las trampas más famosas: cómo tenderlas y cómo no caer en ellas.</span></button>
+        <button type="button" class="feature" data-go="mates"><span class="f-icon">♚</span><b>Mates</b><span>Los mates básicos contra el motor y los patrones que más aparecen.</span></button>
+      </div>
     </section>
 
     <main id="review" class="review" hidden>
@@ -125,7 +146,7 @@
           <button data-act="flip" title="Girar tablero (F)">⇅</button>
           <button data-act="engine" title="Muestra con una flecha azul la mejor jugada en la posición actual">Pista</button>
         </div>
-        <p class="hint">← → para moverte · toca cualquier jugada para verla · «Pista» muestra la mejor jugada en cada posición · click derecho para dibujar flechas (Shift/Alt cambian el color)</p>
+        <p class="hint">← → para moverte · «Pista» muestra la mejor jugada · click derecho dibuja flechas</p>
       </div>
 
       <aside id="review-panel" class="panel">
