@@ -3,17 +3,17 @@
 import { Chess } from 'chess.js';
 
 export const CLASSES = {
-  brilliant: { label: 'Brillante', symbol: '!!', color: '#26c2a3' },
-  great: { label: 'Gran jugada', symbol: '!', color: '#5c8fe0' },
-  best: { label: 'Mejor', symbol: '★', color: '#7cbf4b' },
-  excellent: { label: 'Excelente', symbol: '✓', color: '#9bc25a' },
-  good: { label: 'Buena', symbol: '✓', color: '#93a88a' },
-  book: { label: 'Teoría', symbol: '≡', color: '#b08c64' },
-  forced: { label: 'Forzada', symbol: '→', color: '#8a9099' },
-  inaccuracy: { label: 'Imprecisión', symbol: '?!', color: '#f2c14e' },
-  mistake: { label: 'Error', symbol: '?', color: '#ef8f2f' },
-  miss: { label: 'Oportunidad perdida', symbol: '×', color: '#f2706a' },
-  blunder: { label: 'Error grave', symbol: '??', color: '#d63b36' },
+  brilliant: { label: 'Brillante', symbol: '!!', color: '#26c2a3', desc: "Un sacrificio que funciona: entregas material y aun así es de lo mejor." },
+  great: { label: 'Gran jugada', symbol: '!', color: '#5c8fe0', desc: "La única jugada buena en un momento crítico." },
+  best: { label: 'Mejor', symbol: '★', color: '#7cbf4b', desc: "La jugada que elige el motor." },
+  excellent: { label: 'Excelente', symbol: '✓', color: '#9bc25a', desc: "Casi tan buena como la mejor." },
+  good: { label: 'Buena', symbol: '✓', color: '#93a88a', desc: "Correcta, aunque había algo un poco mejor." },
+  book: { label: 'Teoría', symbol: '≡', color: '#b08c64', desc: "Jugada conocida de la teoría de aperturas." },
+  forced: { label: 'Forzada', symbol: '→', color: '#8a9099', desc: "No había otra jugada legal." },
+  inaccuracy: { label: 'Imprecisión', symbol: '?!', color: '#f2c14e', desc: "Pierde un poco de ventaja." },
+  mistake: { label: 'Error', symbol: '?', color: '#ef8f2f', desc: "Empeora bastante tu posición." },
+  miss: { label: 'Oportunidad perdida', symbol: '×', color: '#f2706a', desc: "El rival se equivocó y no lo aprovechaste." },
+  blunder: { label: 'Error grave', symbol: '??', color: '#d63b36', desc: "Un error que puede costar la partida." },
 };
 
 export const SUMMARY_ORDER = [
@@ -160,8 +160,11 @@ export function classifyMoves(moves, positions, book = []) {
 
     if (cls === 'best' || cls === 'excellent') {
       const second = pre.lines?.[1]?.score;
-      // Brillante: sacrificio que funciona, sin estar ya completamente ganado.
-      if (winAfter >= 45 && winBefore < 97 && isSacrifice(move)) {
+      // Brillante: sacrificio que funciona. Si ya estabas ganando, solo cuenta
+      // si lleva a mate o si era claramente la mejor forma de seguir.
+      const leadsToMate = sAfterOpp.mate != null && sAfterOpp.mate <= 0;
+      const clearlyBest = second && winPct(sBefore) - winPct(second) >= 10;
+      if (winAfter >= 45 && (winBefore < 97 || leadsToMate || clearlyBest) && isSacrifice(move)) {
         cls = 'brilliant';
       } else if (
         isBest && second && pre.legalCount > 1 && !new Chess(move.before).inCheck() &&

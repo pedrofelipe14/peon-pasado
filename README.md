@@ -10,6 +10,8 @@ Todo el análisis corre en tu navegador con [Stockfish](https://stockfishchess.o
 
 - **lichess**: pega el link de la partida.
 - **chess.com**: chess.com no tiene una API pública para pedir una partida solo por su número. Escribe tu usuario y la página busca el link entre tus partidas de los últimos 6 meses. Otra opción es tocar **Mis partidas** y elegir una de la lista, o pegar el PGN (en chess.com: Compartir → PGN).
+- **Ver la mejor jugada**: en cada error, el botón «▶ Ver la mejor jugada» la juega en el tablero y te deja recorrer la línea del motor jugada a jugada. «Ver qué podía hacer el rival» muestra cómo te castigaban.
+- Cada jugada viene explicada en palabras simples: qué te podía hacer el rival («Ahora el rival puede comer tu caballo con Qxg5»), qué hacía la mejor jugada y cómo cambió la posición («Antes: posición igualada → Ahora: ventaja clara de las negras»). El resumen lista los momentos clave de la partida, y «Pista» muestra la mejor jugada en cualquier posición.
 - Navegación: ← → para moverte por las jugadas, ↑ ↓ para ir al inicio o al final, F para girar el tablero. Puedes tocar el gráfico de evaluación para saltar a una jugada.
 
 ## Cómo clasifica

@@ -44,12 +44,22 @@
       <ul id="game-list" class="game-list"></ul>
     </section>
 
+    <section id="intro" class="intro">
+      <h1>Descubre en qué jugada se te escapó la partida</h1>
+      <ol class="steps">
+        <li><b>1</b><span><strong>Pega el link</strong> de tu partida de chess.com o lichess (o elige una de <em>Mis partidas</em>).</span></li>
+        <li><b>2</b><span><strong>El motor revisa cada jugada</strong> y le pone una marca: ★ mejor, ?! imprecisión, ? error, ?? error grave…</span></li>
+        <li><b>3</b><span><strong>Toca «Ver la mejor jugada»</strong> en tus errores para ver qué tenías que jugar, movida a movida.</span></li>
+      </ol>
+      <button id="example" type="button">Probar con una partida famosa (Morphy, 1858)</button>
+    </section>
+
     <main id="review" class="review" hidden>
       <div class="board-col">
         <div id="player-top" class="player"></div>
         <div class="board-row">
           <div id="evalbar" class="evalbar"><span id="evalbar-text"></span></div>
-          <div class="board-box"><div id="board"></div></div>
+          <div id="board-box" class="board-box"><div id="board"></div></div>
         </div>
         <div id="player-bottom" class="player"></div>
         <div id="nav" class="nav">
@@ -58,8 +68,9 @@
           <button data-act="next" title="Siguiente (→)">▶</button>
           <button data-act="last" title="Final (↓)">⏭</button>
           <button data-act="flip" title="Girar tablero (F)">⇅</button>
-          <button data-act="engine" title="Mostrar la jugada del motor">Motor</button>
+          <button data-act="engine" title="Muestra con una flecha azul la mejor jugada en la posición actual">Pista</button>
         </div>
+        <p class="hint">← → para moverte · toca cualquier jugada para verla · «Pista» muestra la mejor jugada en cada posición</p>
       </div>
 
       <aside class="panel">

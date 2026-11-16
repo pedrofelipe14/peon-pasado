@@ -5,8 +5,9 @@ import '@lichess-org/chessground/assets/chessground.cburnett.css';
 import './style.css';
 import {
   CLASSES, SUMMARY_ORDER, classifyMoves, gameAccuracy, whiteWinPct, bestScore, toWhite,
-  formatScore, terminalScore, pvToSan,
+  formatScore, terminalScore, winPct,
 } from './analysis.js';
+import { explainMove, evalWords, uciMove } from './explain.js';
 import { EnginePool, defaultPoolSize } from './engine.js';
 import { parseInput, fetchLichessGame, findChessComGame, recentGames, LoadError } from './games.js';
 import { drawGraph, graphPlyAt } from './graph.js';
@@ -17,6 +18,18 @@ const DEPTHS = {
   normal: { depth: 16, movetime: 2000, label: 'Normal' },
   deep: { depth: 20, movetime: 5000, label: 'Profundo' },
 };
+const KEY = new Set(['brilliant', 'great', 'miss', 'mistake', 'blunder']);
+const BAD = new Set(['inaccuracy', 'mistake', 'blunder', 'miss']);
+
+const EXAMPLE_PGN = `[Event "París, la partida de la ópera"]
+[Date "1858.??.??"]
+[White "Paul Morphy"]
+[Black "Duque de Brunswick y Conde Isouard"]
+[Result "1-0"]
+
+1. e4 e5 2. Nf3 d6 3. d4 Bg4 4. dxe5 Bxf3 5. Qxf3 dxe5 6. Bc4 Nf6 7. Qb3 Qe7
+8. Nc3 c6 9. Bg5 b5 10. Nxb5 cxb5 11. Bxb5+ Nbd7 12. O-O-O Rd8 13. Rxd7 Rxd7
+14. Rd1 Qe6 15. Bxd7+ Nxd7 16. Qb8+ Nxb8 17. Rd8# 1-0`;
 
 const store = {
   get(k, d = null) {
@@ -32,6 +45,7 @@ const state = {
   ply: 0, orientation: 'white', pool: null, showEngine: store.get('pp:engine', false),
   analyzed: 0, toAnalyze: 0, settingsKey: store.get('pp:depth', 'normal'), cacheKey: null,
   platform: store.get('pp:platform', 'chesscom'), source: null,
+  variation: null, // { title, fens, ucis, sans, idx, score, rootFen }
 };
 
 let openingDb = null;
@@ -43,7 +57,7 @@ const epd = (fen) => fen.split(' ').slice(0, 4).join(' ');
 const cg = Chessground($('#board'), {
   viewOnly: true,
   coordinates: true,
-  animation: { enabled: true, duration: 160 },
+  animation: { enabled: true, duration: 180 },
   highlight: { lastMove: true, check: true },
   drawable: {
     enabled: false,
@@ -51,6 +65,7 @@ const cg = Chessground($('#board'), {
     brushes: {
       best: { key: 'bst', color: '#7cbf4b', opacity: 0.85, lineWidth: 11 },
       engine: { key: 'eng', color: '#5c8fe0', opacity: 0.75, lineWidth: 9 },
+      threat: { key: 'thr', color: '#e0524c', opacity: 0.8, lineWidth: 10 },
     },
   },
 });
@@ -62,48 +77,70 @@ function badgeSvg(cls) {
     + `<text x="14" y="${14 + size * 0.36}" font-size="${size}" font-weight="800" text-anchor="middle" fill="#fff" font-family="system-ui,sans-serif">${c.symbol}</text></g>`;
 }
 
+const arrow = (uci, brush) => ({ orig: uci.slice(0, 2), dest: uci.slice(2, 4), brush });
+
+function setBoard(fen, lastUci) {
+  const turn = fen.split(' ')[1] === 'w' ? 'white' : 'black';
+  cg.set({
+    fen,
+    orientation: state.orientation,
+    turnColor: turn,
+    check: new Chess(fen).inCheck() ? turn : false,
+    lastMove: lastUci ? [lastUci.slice(0, 2), lastUci.slice(2, 4)] : undefined,
+  });
+}
+
 function renderBoard() {
+  const v = state.variation;
+  const box = $('#board-box');
+  box.classList.toggle('in-variation', !!v);
+  if (v) {
+    setBoard(v.fens[v.idx], v.ucis[v.idx - 1]);
+    const shapes = [];
+    const next = v.ucis[v.idx];
+    if (next) shapes.push(arrow(next, v.kind === 'threat' ? 'threat' : 'best'));
+    cg.setAutoShapes(shapes);
+    $('#board').dataset.cls = '';
+    return;
+  }
   const p = state.ply;
   const pos = state.positions[p];
   if (!pos) return;
   const move = state.moves[p - 1];
-  const turn = pos.fen.split(' ')[1] === 'w' ? 'white' : 'black';
-  const inCheck = new Chess(pos.fen).inCheck();
-  cg.set({
-    fen: pos.fen,
-    orientation: state.orientation,
-    turnColor: turn,
-    check: inCheck ? turn : false,
-    lastMove: move ? [move.from, move.to] : undefined,
-  });
+  setBoard(pos.fen, move?.lan);
   const shapes = [];
   const r = move && state.results[p - 1];
   if (r) {
     shapes.push({ orig: move.to, customSvg: { html: badgeSvg(r.cls) } });
-    if (!r.isBest && r.bestUci && !['book', 'forced', 'best'].includes(r.cls)) {
-      shapes.push({ orig: r.bestUci.slice(0, 2), dest: r.bestUci.slice(2, 4), brush: 'best' });
-    }
+    if (!r.isBest && r.bestUci && !['book', 'forced', 'best'].includes(r.cls)) shapes.push(arrow(r.bestUci, 'best'));
   }
   const next = pos.lines?.[0]?.pv?.[0];
-  if (state.showEngine && next) {
-    shapes.push({ orig: next.slice(0, 2), dest: next.slice(2, 4), brush: 'engine' });
-  }
+  if (state.showEngine && next) shapes.push(arrow(next, 'engine'));
   cg.setAutoShapes(shapes);
   $('#board').dataset.cls = r?.cls ?? '';
 }
 
 /* ---------- barra de evaluación ---------- */
 function renderEvalBar() {
-  const pos = state.positions[state.ply];
-  const w = whiteWinPct(pos);
+  let w;
+  let s;
+  if (state.variation) {
+    const v = state.variation;
+    s = toWhite(v.score, v.rootFen);
+    w = s ? (s.mate === 0 ? (s.whiteMated ? 0 : 100) : winPct(s)) : null;
+  } else {
+    const pos = state.positions[state.ply];
+    w = whiteWinPct(pos);
+    s = toWhite(bestScore(pos), pos.fen);
+  }
   const bar = $('#evalbar');
   bar.classList.toggle('flipped', state.orientation === 'black');
   bar.classList.toggle('pending', w == null);
   const pct = w ?? 50;
   bar.style.setProperty('--white', `${pct}%`);
-  const s = toWhite(bestScore(pos), pos.fen);
   $('#evalbar-text').textContent = s ? (s.mate === 0 ? (s.whiteMated ? '0-1' : '1-0') : formatScore(s).replace('+', '')) : '';
   $('#evalbar-text').classList.toggle('dark', pct >= 50);
+  bar.title = s ? evalWords(s) : '';
 }
 
 /* ---------- jugadores ---------- */
@@ -116,7 +153,7 @@ function renderPlayers(acc) {
   const html = (color) => {
     const i = info[color];
     const elo = i.elo && i.elo !== '?' ? `<span class="elo">${esc(i.elo)}</span>` : '';
-    const a = i.acc != null ? `<span class="acc-chip ${color}">${i.acc.toFixed(1)}</span>` : '';
+    const a = i.acc != null ? `<span class="acc-chip ${color}" title="Precisión">${i.acc.toFixed(1)}</span>` : '';
     return `<span class="dot ${color}"></span><span class="name">${esc(i.name)}</span>${elo}${a}`;
   };
   const bottom = state.orientation;
@@ -130,9 +167,8 @@ function renderMoves() {
   const el = $('#moves');
   const rows = [];
   const startBlack = state.moves[0]?.color === 'b';
-  const firstNum = state.positions[0] ? +state.positions[0].fen.split(' ')[5] : 1;
+  let num = state.positions[0] ? +state.positions[0].fen.split(' ')[5] : 1;
   let i = 0;
-  let num = firstNum;
   while (i < state.moves.length) {
     const cells = [];
     if (i === 0 && startBlack) cells.push('<span class="mv empty">…</span>');
@@ -151,87 +187,154 @@ function renderMoves() {
 
 function moveCell(i) {
   const m = state.moves[i];
-  const r = state.results[i];
-  const cls = r?.cls;
+  const cls = state.results[i]?.cls;
   const badge = cls
     ? `<i class="badge" style="--c:${CLASSES[cls].color}" title="${CLASSES[cls].label}">${CLASSES[cls].symbol}</i>`
     : '<i class="badge pending"></i>';
-  const active = state.ply === i + 1 ? ' active' : '';
+  const active = state.ply === i + 1 && !state.variation ? ' active' : '';
   return `<button class="mv${active}" data-ply="${i + 1}">${badge}<span>${esc(m.san)}</span></button>`;
 }
 
-/* ---------- explicación de la jugada ---------- */
-const PHRASES = {
-  brilliant: (s) => `<b>${s}</b> es brillante: entrega material y funciona.`,
-  great: (s) => `<b>${s}</b> es una gran jugada: era la única buena.`,
-  best: (s) => `<b>${s}</b> es la mejor jugada.`,
-  excellent: (s) => `<b>${s}</b> es excelente.`,
-  good: (s) => `<b>${s}</b> es una buena jugada.`,
-  book: (s) => `<b>${s}</b> es teoría de apertura.`,
-  forced: (s) => `<b>${s}</b> era la única jugada legal.`,
-  inaccuracy: (s) => `<b>${s}</b> es una imprecisión.`,
-  mistake: (s) => `<b>${s}</b> es un error.`,
-  miss: (s) => `<b>${s}</b> deja pasar una oportunidad.`,
-  blunder: (s) => `<b>${s}</b> es un error grave.`,
-};
+/* ---------- variantes: ver la mejor jugada / la amenaza ---------- */
+function startVariation(kind, rootFen, line, title) {
+  if (!line?.pv?.length) return;
+  const c = new Chess(rootFen);
+  const fens = [rootFen];
+  const ucis = [];
+  const sans = [];
+  for (const uci of line.pv.slice(0, 10)) {
+    const m = uciMove(c.fen(), uci);
+    if (!m) break;
+    c.move(m.san);
+    fens.push(c.fen());
+    ucis.push(uci);
+    sans.push(m.san);
+  }
+  if (!sans.length) return;
+  state.variation = { kind, title, rootFen, fens, ucis, sans, idx: 1, score: line.score };
+  render();
+}
 
-function lineHtml(fen, pv, n = 7) {
-  const sans = pvToSan(fen, pv, n);
-  const c = new Chess(fen);
+function stepVariation(d) {
+  const v = state.variation;
+  v.idx = Math.max(0, Math.min(v.sans.length, v.idx + d));
+  render();
+}
+
+function exitVariation() {
+  state.variation = null;
+  render();
+}
+
+function lineButtons(fen, sans, activeIdx = -1, clickable = false) {
   let num = +fen.split(' ')[5];
-  let white = c.turn() === 'w';
+  let white = fen.split(' ')[1] === 'w';
   const out = [];
   sans.forEach((s, k) => {
-    if (white) out.push(`${num}.`);
-    else if (k === 0) out.push(`${num}…`);
-    out.push(esc(s));
+    if (white) out.push(`<span class="ln">${num}.</span>`);
+    else if (k === 0) out.push(`<span class="ln">${num}…</span>`);
+    const cls = k + 1 === activeIdx ? ' on' : '';
+    out.push(clickable ? `<button class="lv${cls}" data-vidx="${k + 1}">${esc(s)}</button>` : `<span class="lv">${esc(s)}</span>`);
     if (!white) num++;
     white = !white;
   });
   return out.join(' ');
 }
 
+function renderVariation(el) {
+  const v = state.variation;
+  const head = v.kind === 'threat' ? 'Lo que podía hacer el rival' : 'La mejor jugada';
+  const s = toWhite(v.score, v.rootFen);
+  el.innerHTML = `
+    <div class="ex-head"><span class="var-tag ${v.kind}">${head}</span>${s ? `<span class="eval-chip ${(s.mate ?? s.cp) >= 0 ? 'w' : 'b'}">${formatScore(s)}</span>` : ''}</div>
+    <p>${v.title}</p>
+    <p class="line">${lineButtons(v.rootFen, v.sans, v.idx, true)}</p>
+    <div class="actions">
+      <button data-x="vprev" title="←">◀</button>
+      <button data-x="vnext" title="→">▶</button>
+      <button data-x="vexit" class="primary" title="Esc">Volver a la partida</button>
+    </div>
+    <p class="muted small">${s ? esc(evalWords(s)) : ''} · usa ← → para recorrer la línea.</p>`;
+}
+
+/* ---------- explicación de la jugada ---------- */
+const HEADLINE = {
+  brilliant: (s) => `<b>${s}</b> es brillante`,
+  great: (s) => `<b>${s}</b> es una gran jugada`,
+  best: (s) => `<b>${s}</b> es la mejor jugada`,
+  excellent: (s) => `<b>${s}</b> es excelente`,
+  good: (s) => `<b>${s}</b> es buena`,
+  book: (s) => `<b>${s}</b> es teoría`,
+  forced: (s) => `<b>${s}</b> era forzada`,
+  inaccuracy: (s) => `<b>${s}</b> es una imprecisión`,
+  mistake: (s) => `<b>${s}</b> es un error`,
+  miss: (s) => `<b>${s}</b>: oportunidad perdida`,
+  blunder: (s) => `<b>${s}</b> es un error grave`,
+};
+
+function evalChip(fen, score) {
+  const w = toWhite(score, fen);
+  if (!w) return '';
+  const side = w.mate === 0 ? '' : (w.mate ?? w.cp) >= 0 ? 'w' : 'b';
+  return `<span class="eval-chip ${side}" title="${esc(evalWords(w))}">${w.mate === 0 ? '#' : formatScore(w)}</span>`;
+}
+
 function renderExplain() {
   const el = $('#explain');
+  if (state.variation) {
+    renderVariation(el);
+    return;
+  }
   const p = state.ply;
   const pos = state.positions[p];
-  const evalTxt = (fen, s) => {
-    const w = toWhite(s, fen);
-    return w ? `<span class="eval-chip ${w.mate === 0 ? '' : (w.mate ?? w.cp) >= 0 ? 'w' : 'b'}">${w.mate === 0 ? '#' : formatScore(w)}</span>` : '';
-  };
   if (p === 0) {
     const name = state.opening ? `<p class="muted">${esc(state.opening.eco)} · ${esc(state.opening.name)}</p>` : '';
-    el.innerHTML = `<div class="ex-head"><span>Posición inicial</span>${evalTxt(pos.fen, bestScore(pos))}</div>${name}`
-      + (pos.lines?.[0] ? `<p class="line"><span class="muted">Mejor:</span> ${lineHtml(pos.fen, pos.lines[0].pv)}</p>` : '');
+    const ready = state.results.length && state.results.every(Boolean);
+    el.innerHTML = `<div class="ex-head"><span>Posición inicial</span>${evalChip(pos.fen, bestScore(pos))}</div>${name}
+      <p>${ready ? 'Toca <b>▶</b> o usa la flecha → para ir jugada por jugada, o salta directo a un momento clave.' : 'Mientras se analiza, ya puedes recorrer la partida.'}</p>
+      ${ready && firstKey(0) != null ? '<div class="actions"><button data-x="nextkey" class="primary">Ir al primer momento clave ⚑</button></div>' : ''}`;
     return;
   }
   const m = state.moves[p - 1];
   const r = state.results[p - 1];
   const pre = state.positions[p - 1];
   if (!r) {
-    el.innerHTML = `<div class="ex-head"><span><b>${esc(m.san)}</b></span></div><p class="muted">Analizando…</p>`;
+    el.innerHTML = `<div class="ex-head"><span><b>${esc(m.san)}</b></span></div><p class="muted">Analizando esta jugada…</p>`;
     return;
   }
   const c = CLASSES[r.cls];
-  let html = `<div class="ex-head"><i class="badge big" style="--c:${c.color}">${c.symbol}</i><span>${PHRASES[r.cls](esc(m.san))}</span>${evalTxt(pos.fen, bestScore(pos))}</div>`;
-  if (r.cls === 'book' && state.opening && p <= state.opening.ply) {
-    html += `<p class="muted">${esc(state.opening.eco)} · ${esc(state.opening.name)}</p>`;
-  }
-  if (!r.isBest && r.bestUci && !['book', 'forced'].includes(r.cls)) {
-    const bestSan = pvToSan(pre.fen, [r.bestUci])[0];
-    const ms = pre.lines[0].score;
-    const mateTxt = ms.mate > 0 ? ` (mate en ${ms.mate})` : '';
-    html += `<p>Lo mejor era <b class="best-san">${esc(bestSan)}</b>${mateTxt}.</p>`;
-    html += `<p class="line"><span class="muted">Línea:</span> ${lineHtml(pre.fen, pre.lines[0].pv)}</p>`;
-  }
-  const side = m.color === 'w' ? 'blancas' : 'negras';
-  html += `<p class="muted small">Probabilidad de ganar de las ${side}: ${Math.round(r.winBefore)}% → ${Math.round(r.winAfter)}%</p>`;
+  const openingName = state.opening && p <= state.opening.ply ? state.opening.name : null;
+  const ex = explainMove(m, r, pre, pos, openingName);
+  const who = m.color === 'w' ? 'Blancas' : 'Negras';
+  let html = `<div class="ex-head"><i class="badge big" style="--c:${c.color}">${c.symbol}</i><span>${HEADLINE[r.cls](esc(m.san))}</span>${evalChip(pos.fen, bestScore(pos))}</div>`;
+  html += `<p class="cls-desc" style="--c:${c.color}">${who} · ${esc(c.desc)}</p>`;
+  if (ex.why) html += `<p class="why">${esc(ex.why)}</p>`;
+  if (ex.better) html += `<p class="better">${esc(ex.better)}</p>`;
+
+  const actions = [];
+  const showBest = !r.isBest && r.bestUci && !['book', 'forced'].includes(r.cls) && pre.lines?.[0];
+  if (showBest) actions.push('<button data-x="best" class="primary">▶ Ver la mejor jugada</button>');
+  if (BAD.has(r.cls) && !pos.terminal && pos.lines?.[0]) actions.push('<button data-x="threat">Ver qué podía hacer el rival</button>');
+  if (actions.length) html += `<div class="actions">${actions.join('')}</div>`;
+
+  const before = evalWords(toWhite(bestScore(pre), pre.fen));
+  const after = evalWords(toWhite(bestScore(pos), pos.fen));
   if (pos.terminal) {
-    html += `<p class="final">${pos.terminal.mate === 0 ? 'Jaque mate.' : 'Tablas.'}</p>`;
-  } else if (state.showEngine && pos.lines?.[0]) {
-    html += `<p class="line"><span class="muted">Ahora:</span> ${lineHtml(pos.fen, pos.lines[0].pv)}</p>`;
+    html += `<p class="final">${pos.terminal.mate === 0 ? 'Jaque mate. Fin de la partida.' : 'Tablas. Fin de la partida.'}</p>`;
+  } else if (before && after) {
+    html += `<p class="swing"><span>Antes: ${esc(before)}</span><span>→</span><span>Ahora: ${esc(after)}</span></p>`;
   }
+  const nk = firstKey(p);
+  if (nk != null) html += `<div class="actions subtle"><button data-x="nextkey">Siguiente momento clave ⚑</button></div>`;
   el.innerHTML = html;
+}
+
+/** Primera jugada clave después de la jugada p (ply), o null. */
+function firstKey(p) {
+  for (let i = p; i < state.results.length; i++) {
+    if (state.results[i] && KEY.has(state.results[i].cls)) return i + 1;
+  }
+  return null;
 }
 
 /* ---------- resumen ---------- */
@@ -245,19 +348,36 @@ function renderSummary(acc) {
   const count = { w: {}, b: {} };
   state.results.forEach((r) => { count[r.color][r.cls] = (count[r.color][r.cls] ?? 0) + 1; });
   const h = state.headers;
+  const cell = (color, k) => {
+    const n = count[color][k] ?? 0;
+    return n ? `<button class="n" data-jump="${color}:${k}" title="Ir a la primera">${n}</button>` : '<span class="n zero">0</span>';
+  };
   const rows = SUMMARY_ORDER.filter((k) => count.w[k] || count.b[k]).map((k) => {
     const c = CLASSES[k];
-    return `<tr><td class="n">${count.w[k] ?? 0}</td><td class="lbl"><i class="badge" style="--c:${c.color}">${c.symbol}</i>${c.label}</td><td class="n">${count.b[k] ?? 0}</td></tr>`;
+    return `<tr><td>${cell('w', k)}</td><td class="lbl" title="${esc(c.desc)}"><i class="badge" style="--c:${c.color}">${c.symbol}</i>${c.label}</td><td>${cell('b', k)}</td></tr>`;
+  });
+  const keys = state.results.map((r, i) => ({ r, i })).filter(({ r }) => KEY.has(r.cls));
+  const moments = keys.map(({ r, i }) => {
+    const m = state.moves[i];
+    const c = CLASSES[r.cls];
+    const num = m.color === 'w' ? `${+state.positions[i].fen.split(' ')[5]}.` : `${+state.positions[i].fen.split(' ')[5]}…`;
+    return `<button class="moment" data-ply="${i + 1}"><i class="badge" style="--c:${c.color}">${c.symbol}</i><span class="dot ${m.color === 'w' ? 'white' : 'black'}"></span><b>${num} ${esc(m.san)}</b><span class="muted">${c.label}</span></button>`;
   });
   const a = (v) => (v == null ? '–' : v.toFixed(1));
   el.innerHTML = `
+    <h3>Resumen</h3>
     <div class="acc-row">
       <div class="acc-box w"><span class="acc-num">${a(acc?.w)}</span><span class="acc-name">${esc(h.White || 'Blancas')}</span></div>
-      <div class="acc-label">Precisión</div>
+      <div class="acc-label" title="100 = jugaste todo como el motor">Precisión</div>
       <div class="acc-box b"><span class="acc-num">${a(acc?.b)}</span><span class="acc-name">${esc(h.Black || 'Negras')}</span></div>
     </div>
     <table class="counts">${rows.join('')}</table>
-    ${state.opening ? `<p class="muted small center">${esc(state.opening.eco)} · ${esc(state.opening.name)}</p>` : ''}`;
+    ${moments.length ? `<h3>Momentos clave</h3><div class="moments">${moments.join('')}</div>` : ''}
+    ${state.opening ? `<p class="muted small center">${esc(state.opening.eco)} · ${esc(state.opening.name)}</p>` : ''}
+    <details class="legend"><summary>¿Qué significa cada símbolo?</summary>
+      <ul>${SUMMARY_ORDER.map((k) => `<li><i class="badge" style="--c:${CLASSES[k].color}">${CLASSES[k].symbol}</i><b>${CLASSES[k].label}:</b> ${esc(CLASSES[k].desc)}</li>`).join('')}</ul>
+      <p class="muted small">La <b>precisión</b> va de 0 a 100: 100 significa que todas tus jugadas fueron las del motor. La evaluación (+1.0, -2.5…) está en peones: positiva es mejor para las blancas, negativa para las negras. «M3» es mate en 3.</p>
+    </details>`;
 }
 
 function renderProgress() {
@@ -265,7 +385,7 @@ function renderProgress() {
   if (state.toAnalyze && state.analyzed < state.toAnalyze) {
     const pct = Math.round((state.analyzed / state.toAnalyze) * 100);
     el.hidden = false;
-    el.innerHTML = `<div class="bar"><div style="width:${pct}%"></div></div><span>Analizando ${state.analyzed}/${state.toAnalyze} posiciones · ${DEPTHS[state.settingsKey].label.toLowerCase()} (prof. ${DEPTHS[state.settingsKey].depth})</span>`;
+    el.innerHTML = `<div class="bar"><div style="width:${pct}%"></div></div><span>Analizando la partida… ${pct}%</span>`;
   } else {
     el.hidden = true;
   }
@@ -275,11 +395,11 @@ function renderProgress() {
 let accuracy = null;
 function recompute() {
   state.results = classifyMoves(state.moves, state.positions, state.book);
-  const wins = state.positions.map(whiteWinPct);
-  accuracy = gameAccuracy(wins, state.results);
+  accuracy = gameAccuracy(state.positions.map(whiteWinPct), state.results);
 }
 
 function render() {
+  if (!state.positions.length) return;
   renderBoard();
   renderEvalBar();
   renderPlayers(accuracy);
@@ -301,6 +421,7 @@ function scheduleRender() {
 }
 
 function goto(ply) {
+  state.variation = null;
   state.ply = Math.max(0, Math.min(state.moves.length, ply));
   render();
 }
@@ -332,6 +453,7 @@ async function startGame(pgn, meta = {}) {
     return;
   }
   state.pool?.terminate();
+  state.variation = null;
   state.headers = chess.getHeaders();
   state.moves = moves;
   state.positions = [moves[0].before, ...moves.map((m) => m.after)].map((fen) => {
@@ -354,11 +476,11 @@ async function startGame(pgn, meta = {}) {
   state.orientation = me && (state.headers.Black || '').toLowerCase() === me ? 'black' : 'white';
   state.ply = 0;
   $('#review').hidden = false;
+  $('#intro').hidden = true;
   $('body').classList.add('has-game');
   const link = meta.url ? ` · <a href="${esc(meta.url)}" target="_blank" rel="noopener">ver original</a>` : '';
   setStatus(`${esc(state.headers.White || '?')} vs ${esc(state.headers.Black || '?')} · ${esc(state.headers.Result || '')}${link}`);
 
-  // análisis guardado
   const settings = DEPTHS[state.settingsKey];
   state.cacheKey = `pp:a:${state.settingsKey}:${hashStr(state.positions.map((p) => p.fen).join('|'))}`;
   const cached = store.get(state.cacheKey);
@@ -406,7 +528,11 @@ function saveCache() {
 
 async function loadFromInput(text) {
   const parsed = parseInput(text);
-  if (!parsed) return;
+  if (!parsed) {
+    setStatus('Pega primero el link de una partida.', 'warn');
+    $('#game-input').focus();
+    return;
+  }
   try {
     if (parsed.kind === 'pgn') {
       await startGame(parsed.pgn);
@@ -418,7 +544,7 @@ async function loadFromInput(text) {
     } else if (parsed.kind === 'chesscom') {
       const users = [currentUser('chesscom')].filter(Boolean);
       if (!users.length) {
-        setStatus('chess.com no deja bajar una partida solo con el link. Escribe tu <b>usuario de chess.com</b> abajo (lo recuerdo para la próxima) y vuelve a darle a Analizar, o pega el PGN (en chess.com: Compartir → PGN).', 'warn');
+        setStatus('Para links de chess.com necesito tu <b>usuario de chess.com</b>: escríbelo abajo y vuelve a tocar Analizar (lo recuerdo para la próxima). También puedes pegar el PGN (en chess.com: Compartir → PGN).', 'warn');
         selectPlatform('chesscom');
         $('#username').focus();
         return;
@@ -453,7 +579,7 @@ function selectPlatform(p) {
   store.set('pp:platform', p);
   document.querySelectorAll('.seg button').forEach((b) => b.classList.toggle('on', b.dataset.platform === p));
   $('#username').value = store.get(`pp:user:${p}`, '');
-  $('#username').placeholder = p === 'lichess' ? 'Usuario de lichess' : 'Usuario de chess.com';
+  $('#username').placeholder = p === 'lichess' ? 'Tu usuario de lichess' : 'Tu usuario de chess.com';
 }
 
 let lastList = [];
@@ -515,14 +641,61 @@ $('#game-list').addEventListener('click', (e) => {
   location.hash = encodeURIComponent(g.url);
   startGame(g.pgn, { url: g.url, user: $('#username').value.trim() });
 });
+$('#example').addEventListener('click', () => {
+  $('#game-input').value = '';
+  startGame(EXAMPLE_PGN);
+});
 $('#moves').addEventListener('click', (e) => {
   const b = e.target.closest('.mv[data-ply]');
   if (b) goto(+b.dataset.ply);
 });
+
+// botones dentro del panel de explicación y del resumen
+$('.panel').addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  if (b.dataset.vidx) {
+    state.variation.idx = +b.dataset.vidx;
+    render();
+    return;
+  }
+  if (b.dataset.jump) {
+    const [color, cls] = b.dataset.jump.split(':');
+    const i = state.results.findIndex((r) => r.color === color && r.cls === cls);
+    if (i >= 0) goto(i + 1);
+    return;
+  }
+  if (b.classList.contains('moment')) {
+    goto(+b.dataset.ply);
+    return;
+  }
+  const x = b.dataset.x;
+  const p = state.ply;
+  if (x === 'best') {
+    const pre = state.positions[p - 1];
+    const san = uciMove(pre.fen, pre.lines[0].pv[0])?.san ?? '';
+    startVariation('best', pre.fen, pre.lines[0], `En vez de <b>${esc(state.moves[p - 1].san)}</b>, lo mejor era <b class="best-san">${esc(san)}</b>. Así sigue la partida si se juega bien:`);
+  } else if (x === 'threat') {
+    const pos = state.positions[p];
+    const san = uciMove(pos.fen, pos.lines[0].pv[0])?.san ?? '';
+    startVariation('threat', pos.fen, pos.lines[0], `Después de <b>${esc(state.moves[p - 1].san)}</b>, el rival podía responder <b class="threat-san">${esc(san)}</b>:`);
+  } else if (x === 'vprev') stepVariation(-1);
+  else if (x === 'vnext') stepVariation(1);
+  else if (x === 'vexit') exitVariation();
+  else if (x === 'nextkey') {
+    const k = firstKey(p);
+    if (k != null) goto(k);
+  }
+});
+
 $('#nav').addEventListener('click', (e) => {
   const b = e.target.closest('button');
   if (!b) return;
   const a = b.dataset.act;
+  if (state.variation && ['prev', 'next'].includes(a)) {
+    stepVariation(a === 'prev' ? -1 : 1);
+    return;
+  }
   if (a === 'first') goto(0);
   else if (a === 'prev') goto(state.ply - 1);
   else if (a === 'next') goto(state.ply + 1);
@@ -541,6 +714,17 @@ $('#nav [data-act=engine]').classList.toggle('on', state.showEngine);
 
 document.addEventListener('keydown', (e) => {
   if (e.target.closest('input, textarea, select') || $('#review').hidden) return;
+  if (state.variation) {
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      stepVariation(e.key === 'ArrowLeft' ? -1 : 1);
+      return;
+    }
+    if (e.key === 'Escape') {
+      exitVariation();
+      return;
+    }
+  }
   const k = { ArrowLeft: -1, ArrowRight: 1 }[e.key];
   if (k) { e.preventDefault(); goto(state.ply + k); }
   else if (e.key === 'ArrowUp' || e.key === 'Home') { e.preventDefault(); goto(0); }
