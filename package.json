@@ -1,0 +1,23 @@
+{
+  "name": "peon-pasado",
+  "version": "1.0.0",
+  "description": "Análisis gratis de partidas de chess.com y lichess con Stockfish en el navegador",
+  "scripts": {
+    "prepare": "node scripts/copy-engine.mjs && node scripts/build-openings.mjs",
+    "dev": "npm run prepare && vite",
+    "build": "npm run prepare && vite build",
+    "preview": "vite preview",
+    "test": "node --test \"test/*.test.mjs\""
+  },
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "dependencies": {
+    "@lichess-org/chessground": "^10.5.0",
+    "chess.js": "^1.4.0",
+    "stockfish": "^19.0.1"
+  },
+  "devDependencies": {
+    "vite": "^8.3.8"
+  },
+  "private": true
+}

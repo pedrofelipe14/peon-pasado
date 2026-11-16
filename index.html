@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Peón Pasado · análisis de partidas</title>
+    <meta name="description" content="Analiza gratis tus partidas de chess.com y lichess, jugada por jugada, con Stockfish corriendo en tu navegador." />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%237cbf4b'/%3E%3Cpath d='M16 6a4 4 0 0 0-2.4 7.2C11.7 14.3 11 16 11 18h10c0-2-.7-3.7-2.6-4.8A4 4 0 0 0 16 6zm-6 14v2h12v-2zm-1 4v2h14v-2z' fill='%23141619'/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <header class="top">
+      <a class="brand" href="./">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="currentColor"/><path d="M16 6a4 4 0 0 0-2.4 7.2C11.7 14.3 11 16 11 18h10c0-2-.7-3.7-2.6-4.8A4 4 0 0 0 16 6zm-6 14v2h12v-2zm-1 4v2h14v-2z" fill="var(--bg)"/></svg>
+        <span>Peón Pasado</span>
+      </a>
+      <span class="tag">Análisis gratis de partidas · Stockfish en tu navegador</span>
+    </header>
+
+    <section class="loader">
+      <form id="load-form" class="load-form">
+        <input id="game-input" type="text" autocomplete="off" spellcheck="false"
+          placeholder="Pega el link de chess.com o lichess, o el PGN de la partida" />
+        <select id="depth" title="Profundidad del análisis">
+          <option value="fast">Rápido</option>
+          <option value="normal">Normal</option>
+          <option value="deep">Profundo</option>
+        </select>
+        <button type="submit" class="primary">Analizar</button>
+      </form>
+
+      <form id="mine-form" class="mine">
+        <div class="seg" role="group" aria-label="Plataforma">
+          <button type="button" data-platform="chesscom">chess.com</button>
+          <button type="button" data-platform="lichess">lichess</button>
+        </div>
+        <input id="username" type="text" autocomplete="off" spellcheck="false" placeholder="Usuario de chess.com" />
+        <button type="submit">Mis partidas</button>
+      </form>
+
+      <p id="status" class="status"></p>
+      <ul id="game-list" class="game-list"></ul>
+    </section>
+
+    <main id="review" class="review" hidden>
+      <div class="board-col">
+        <div id="player-top" class="player"></div>
+        <div class="board-row">
+          <div id="evalbar" class="evalbar"><span id="evalbar-text"></span></div>
+          <div class="board-box"><div id="board"></div></div>
+        </div>
+        <div id="player-bottom" class="player"></div>
+        <div id="nav" class="nav">
+          <button data-act="first" title="Inicio (↑)">⏮</button>
+          <button data-act="prev" title="Anterior (←)">◀</button>
+          <button data-act="next" title="Siguiente (→)">▶</button>
+          <button data-act="last" title="Final (↓)">⏭</button>
+          <button data-act="flip" title="Girar tablero (F)">⇅</button>
+          <button data-act="engine" title="Mostrar la jugada del motor">Motor</button>
+        </div>
+      </div>
+
+      <aside class="panel">
+        <div id="progress" class="progress" hidden></div>
+        <div id="explain" class="explain"></div>
+        <canvas id="graph" class="graph" title="Evaluación de la partida"></canvas>
+        <div id="moves" class="moves"></div>
+        <div id="summary" class="summary"></div>
+      </aside>
+    </main>
+
+    <footer class="foot">
+      <p>Todo el análisis corre en tu computadora con <a href="https://stockfishchess.org" target="_blank" rel="noopener">Stockfish</a> (GPLv3, vía stockfish.js). Aperturas de <a href="https://github.com/lichess-org/chess-openings" target="_blank" rel="noopener">lichess-org/chess-openings</a> (CC0). Sin relación con chess.com ni lichess: solo usa sus APIs públicas.</p>
+    </footer>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
