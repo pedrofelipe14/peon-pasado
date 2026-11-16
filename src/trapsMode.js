@@ -1,5 +1,5 @@
 // Trampas de apertura (dentro del modo Aperturas): tenderlas y defenderte.
-import { TRAPS, TrapRun } from './traps.js';
+import { TRAPS, TrapRun, trapLines } from './traps.js';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -15,12 +15,20 @@ export function createTraps({ setBoard, shapes, store, sfx }, el) {
     fails: 0,
     done: store.get('pp:traps:done', {}),
     guide: store.get('pp:traps:guide', true),
+    pick: 0, // línea elegida (índice) o 'random'
+    seen: {}, // líneas vistas de cada trampa en esta sesión
   };
 
   el.addEventListener('click', (e) => {
     const b = e.target.closest('button');
     if (!b) return;
-    if (b.dataset.trap) open(b.dataset.trap);
+    if (b.dataset.trap) {
+      st.pick = 0;
+      open(b.dataset.trap);
+    } else if (b.dataset.line !== undefined) {
+      st.pick = b.dataset.line === 'random' ? 'random' : +b.dataset.line;
+      open(st.trap.id);
+    }
     else if (b.dataset.a === 'back') {
       st.trap = null;
       st.run = null;
@@ -36,6 +44,7 @@ export function createTraps({ setBoard, shapes, store, sfx }, el) {
     }
     else if (b.dataset.a === 'next') {
       const i = TRAPS.indexOf(st.trap);
+      if (st.pick !== 'random') st.pick = 0;
       open(TRAPS[(i + 1) % TRAPS.length].id);
     }
   });
@@ -51,7 +60,8 @@ export function createTraps({ setBoard, shapes, store, sfx }, el) {
 
   async function open(id) {
     st.trap = TRAPS.find((t) => t.id === id);
-    st.run = new TrapRun(st.trap);
+    const n = trapLines(st.trap).length;
+    st.run = new TrapRun(st.trap, st.pick === 'random' ? Math.floor(Math.random() * n) : st.pick);
     st.msg = '';
     st.msgKind = '';
     st.note = st.run.lastNote ?? '';
@@ -82,13 +92,14 @@ export function createTraps({ setBoard, shapes, store, sfx }, el) {
   function finish() {
     const run = st.run;
     st.done[st.trap.id] = true;
+    (st.seen[st.trap.id] ??= new Set()).add(run.line);
     store.set('pp:traps:done', st.done);
     if (!run.endedEarly) st.note = '';
     st.msg = run.endedEarly
       ? `<b>${esc(run.history.at(-1))}</b>: ${esc(run.endedEarly)}`
-      : (run.mistakes === 0 ? '¡Línea completa y sin errores! 🎉' : `Línea completa, con ${run.mistakes} ${run.mistakes === 1 ? 'error' : 'errores'}.`);
+      : (run.mistakes === 0 ? (run.lines[run.line].main ? '¡Línea completa y sin errores! 🎉' : '¡Bien jugado! Supiste qué hacer cuando el rival se defendió distinto. 🎉') : `Línea completa, con ${run.mistakes} ${run.mistakes === 1 ? 'error' : 'errores'}.`);
     if (!run.endedEarly) {
-      const last = st.trap.moves.at(-1);
+      const last = run.steps.at(-1);
       if (typeof last === 'object' && last.n) st.msg = `${esc(last.n)}<br>${st.msg}`;
     }
     st.msgKind = 'solved';
@@ -154,6 +165,11 @@ export function createTraps({ setBoard, shapes, store, sfx }, el) {
     let html = `<button class="back" data-a="back">← Trampas</button>`;
     html += `<div class="explain"><div class="pz-head"><span class="pz-turn ${t.side}"></span><div><b>${esc(t.name)}</b><div class="muted small">${t.kind === 'set' ? 'Tiendes la trampa' : 'Te defiendes'} con ${t.side === 'w' ? 'blancas' : 'negras'} · ${esc(t.opening)}</div></div></div>`;
     html += `<p class="small">${esc(t.explain)}</p>`;
+    const lines = run.lines;
+    if (lines.length > 1) {
+      const chip = (val, label) => `<button data-line="${val}" class="${String(st.pick) === String(val) ? 'on' : ''}">${esc(label)}</button>`;
+      html += `<div class="trap-lines"><span class="muted small">El rival:</span>${lines.map((l, i) => chip(i, l.label)).join('')}${chip('random', '🎲 Al azar')}</div>`;
+    }
     if (run.history.length) html += `<p class="line">${moveList()}</p>`;
     if (st.note && !run.done) html += `<p class="trap-note">💡 ${esc(st.note)}</p>`;
     if (st.msg) html += `<p class="pz-msg ${st.msgKind}">${st.msg}</p>`;
@@ -161,7 +177,14 @@ export function createTraps({ setBoard, shapes, store, sfx }, el) {
     else if (run.myTurn) html += `<p class="muted small">Tu turno. ¿Cuál es la jugada?</p>`;
     html += '</div><div class="actions">';
     if (!run.done) html += `<button data-a="guide" class="${st.guide ? 'on' : ''}" title="Mostrar u ocultar la jugada que toca">${st.guide ? '👁 Con guía' : '🧠 De memoria'}</button>${st.guide ? '' : '<button data-a="hint">Pista</button>'}<button data-a="retry" class="ghost">Reiniciar</button>`;
-    else html += '<button data-a="next" class="primary">Siguiente trampa →</button><button data-a="retry">Repetir</button>';
+    else {
+      const seen = st.seen[t.id] ?? new Set();
+      const others = run.lines.map((l, i) => [l, i]).filter(([, i]) => i !== run.line);
+      if (others.length) {
+        html += `<div class="trap-whatif"><b>¿Y si el rival juega distinto?</b>${others.map(([l, i]) => `<button data-line="${i}">${seen.has(i) ? '✓ ' : ''}${esc(l.main ? (t.kind === 'set' ? 'Si cae en la trampa' : 'La línea principal') : l.label)} →</button>`).join('')}</div>`;
+      }
+      html += '<button data-a="next" class="primary">Siguiente trampa →</button><button data-a="retry">Repetir</button>';
+    }
     html += '</div>';
     el.innerHTML = html;
   }

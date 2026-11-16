@@ -32,7 +32,7 @@ El modo Táctica tiene un tablero donde mueves las piezas, con pistas, «ver sol
 
 Eliges una apertura entre 19 (Italiana, Española, Gambito de dama, Londres, Siciliana, Francesa, Caro-Kann, India de rey…) y la juegas con tu color. El rival responde con variantes reales de la base de lichess, elegidas al azar, y la página te dice en qué variante estás. Hay dos modos: **Aprender**, donde una flecha te muestra la jugada principal y otras flechas las alternativas, y **Practicar**, donde juegas de memoria. Cada apertura explica de qué se trata: la idea, los planes típicos, qué vigilar y para qué tipo de jugador es.
 
-En **Trampas** hay trampas para tenderle al rival (mate de Légal, Blackburne-Shilling, trampa del elefante, gambito Englund, Nd6# en la Caro-Kann, mate del pastor) y lecciones para defenderte de las más comunes. Si juegas el error tentador, la página te explica qué te iba a pasar.
+En **Trampas** hay trampas para tenderle al rival (mate de Légal, Blackburne-Shilling, trampa del elefante, gambito Englund, Nd6# en la Caro-Kann, mate del pastor) y lecciones para defenderte de las más comunes. Si juegas el error tentador, la página te explica qué te iba a pasar. Cada trampa tiene variantes para cuando el rival se defiende distinto (por ejemplo, si contra el mate del pastor juega g6 o Qe7), con la explicación de cómo seguir; puedes elegir la respuesta del rival o dejarla al azar.
 
 ### Mates
 

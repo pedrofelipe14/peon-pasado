@@ -344,3 +344,11 @@ button.ghost { background: none; color: var(--muted); }
 .lesson-check { color: var(--accent); font-weight: 800; }
 .back { background: none; border: 0; padding: 4px 0; color: var(--muted); }
 .back:hover { color: var(--text); }
+
+/* ---------- variantes de las trampas ---------- */
+.trap-lines { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px 0 4px; }
+.trap-lines button { padding: 5px 10px; font-size: 13px; border-radius: 999px; background: var(--panel-2); color: var(--muted); border: 1px solid transparent; }
+.trap-lines button:hover { color: var(--text); }
+.trap-lines button.on { color: var(--text); border-color: var(--accent); }
+.trap-whatif { flex-basis: 100%; display: flex; flex-direction: column; gap: 6px; background: var(--panel); border-radius: var(--radius); padding: 10px 12px; margin-bottom: 4px; }
+.trap-whatif button { text-align: left; }

@@ -149,11 +149,88 @@ const toLan = (fen, san) => {
   }
 };
 
-/** Una sesión de práctica de una trampa. */
+/**
+ * Qué pasa si el rival juega otra cosa. Para cada trampa: en la jugada `at`
+ * (índice en moves, siempre del rival) el rival juega `s` en lugar de la
+ * línea principal, y sigue `then`.
+ */
+export const VARIANTS = {
+  pastor: [
+    { at: 5, s: 'g6', n: 'El rival se defiende bien: el peón tapa la diagonal y ataca tu dama.', then: [
+      { s: 'Qf3', n: 'Vuelves a amenazar f7 desde otro lado.' },
+      { s: 'Nf6', n: 'Defendido otra vez: el caballo tapa la columna f.' },
+      { s: 'Ne2', n: 'La trampa no funcionó, así que juega normal: desarrolla (Ne2, Nbc3, d3) y enroca. No muevas más la dama sin motivo, porque cada jugada de dama le da tiempo al rival.' }] },
+    { at: 5, s: 'Qe7', n: 'El rival defiende f7 con la dama.', then: [
+      { s: 'Nc3', n: 'Ya no hay mate: desarrollas.' },
+      { s: 'Nf6', n: 'El caballo ataca tu dama.' },
+      { s: 'Qe2', n: 'Retira la dama a un lugar seguro y sigue con Nf3, d3 y enroque. La lección: si defienden f7, no insistas.' }] },
+  ],
+  legal: [
+    { at: 9, s: 'dxe5', n: 'El rival no se come la dama: come tu caballo.', then: [
+      { s: 'Qxg4', n: 'Te comes el alfil, que quedó sin defensa. No hubo mate, pero ganaste un peón limpio y tienes buen desarrollo.' }] },
+  ],
+  caro: [
+    { at: 9, s: 'Ndf6', n: 'El rival conoce la trampa: lleva el otro caballo a f6.', then: [
+      { s: 'Nxf6+', n: 'Cambias caballos.' }, 'Nxf6',
+      { s: 'Nf3', n: 'Partida normal. Desarrolla con Nf3 y después mueve la dama para que salga el alfil de f1.' }] },
+    { at: 9, s: 'e6', n: 'El rival libera e7: ya no hay mate en d6.', then: [
+      { s: 'Nf3', n: 'Sigue desarrollando: Nf3, g3 y Bg2 o c3. La dama en e2 puede ir después a otra casilla.' }] },
+  ],
+  englund: [
+    { at: 10, s: 'Nc3', n: 'Las blancas no caen: defienden con el caballo en lugar de Bc3.', then: [
+      { s: 'Bb4', n: 'Clavas el caballo y sigues presionando.' }, 'Rb1',
+      { s: 'Qa3', n: 'La trampa no salió y estás un peón abajo por el gambito. Saca la dama del peligro y desarrolla rápido (…Nge7, enroque): necesitas actividad.' }] },
+  ],
+  blackburne: [
+    { at: 6, s: 'Nxd4', n: 'Las blancas no comen el cebo: cambian el caballo.', then: [
+      { s: 'exd4', n: 'Recuperas con el peón.' }, 'O-O',
+      { s: 'Bc5', n: 'La trampa no funcionó y perdiste un tiempo. Juega normal: …Bc5, …d6, …Nf6 y enroca. El peón de d4 te da espacio.' }] },
+    { at: 6, s: 'O-O', n: 'Las blancas ignoran el cebo y enrocan.', then: [
+      { s: 'Nxf3+', n: 'Cambias el caballo antes de que c3 lo eche.' }, 'Qxf3',
+      { s: 'Nf6', n: 'Desarrolla y no regales más tiempos. Posición normal.' }] },
+    { at: 8, s: 'Ng4', n: 'Las blancas comieron e5 pero se defienden con Ng4 en vez de comer f7.', then: [
+      { s: 'd5', n: 'Atacas el alfil y abres la diagonal de tu alfil hacia g4: recuperas el peón con iniciativa.' }] },
+  ],
+  elefante: [
+    { at: 10, s: 'e3', n: 'Las blancas no muerden el peón de d5.', then: [
+      { s: 'c6', n: 'Refuerzas d5.' }, 'Bd3',
+      { s: 'Bd6', n: 'Juega el Gambito de dama normal: …Bd6 o …Be7, enroque y …Re8. La trampa queda para otra partida.' }] },
+  ],
+  'def-pastor': [
+    { at: 4, s: 'Qf3', n: 'Las blancas apuntan a f7 desde f3 en vez de h5.', then: [
+      { s: 'Nf6', n: 'El caballo tapa la columna f y se desarrolla. Mismo plan: defender f7 y después aprovechar que la dama salió temprano.' }] },
+  ],
+  'def-fried': [
+    { at: 10, s: 'd3', n: 'Las blancas defienden con d3 en lugar de Bb5+.', then: [
+      { s: 'h6', n: 'Echas al caballo de g5.' }, 'Nf3',
+      { s: 'e4', n: 'Lo vuelves a atacar: ganas tiempo y tienes la iniciativa por el peón.' }] },
+  ],
+};
+
+const moveNo = (i) => `${Math.floor(i / 2) + 1}.${i % 2 ? '..' : ''}`;
+
+/** Todas las líneas de una trampa: la principal y una por variante. */
+export function trapLines(trap) {
+  const main = trap.moves.map(step);
+  const out = [{ label: trap.kind === 'set' ? 'Cae en la trampa' : 'Línea principal', steps: main, main: true }];
+  for (const v of VARIANTS[trap.id] ?? []) {
+    const { at, then, ...dev } = v;
+    out.push({
+      label: `Si juega ${moveNo(at)}${dev.s}`,
+      steps: [...main.slice(0, at), dev, ...then.map(step)],
+      main: false,
+    });
+  }
+  return out;
+}
+
+/** Una sesión de práctica de una trampa (line: índice en trapLines). */
 export class TrapRun {
-  constructor(trap) {
+  constructor(trap, line = 0) {
     this.trap = trap;
-    this.steps = trap.moves.map(step);
+    this.lines = trapLines(trap);
+    this.line = Math.min(line, this.lines.length - 1);
+    this.steps = this.lines[this.line].steps;
     this.chess = new Chess();
     this.i = 0;
     this.mistakes = 0;
