@@ -29,6 +29,24 @@
         <p class="hint">Arrastra o toca las piezas para mover.</p>
       </div>
       <aside class="panel">
+        <div class="seg pz-modes" role="tablist" aria-label="Tipo de ejercicio">
+          <button type="button" data-mode="tactics">Táctica</button>
+          <button type="button" data-mode="openings">Aperturas</button>
+          <button type="button" data-mode="mates">Mates</button>
+        </div>
+        <div id="mode-openings" class="mode" hidden>
+          <div class="pz-options">
+            <label>Apertura <select id="op-family"></select></label>
+          </div>
+          <div class="seg op-mode">
+            <button type="button" data-m="learn">Aprender</button>
+            <button type="button" data-m="practice">Practicar</button>
+          </div>
+          <div id="op-card" class="explain"></div>
+          <div id="op-actions" class="actions"></div>
+        </div>
+        <div id="mode-mates" class="mode" hidden><div id="mates"></div></div>
+        <div id="mode-tactics" class="mode">
         <div class="pz-stats">
           <div><span>Rating</span><b id="pz-rating">1500</b></div>
           <div><span>Racha</span><b id="pz-streak">0</b></div>
@@ -46,6 +64,7 @@
         <div id="pz-card" class="explain"></div>
         <div id="pz-actions" class="actions"></div>
         <div id="pz-history" class="pz-history" title="Últimos ejercicios"></div>
+        </div>
       </aside>
     </main>
 

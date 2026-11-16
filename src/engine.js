@@ -4,7 +4,7 @@
 
 const ENGINE_URL = new URL('engine/stockfish-19-lite-single.js', document.baseURI).href;
 
-class EngineWorker {
+export class EngineWorker {
   constructor() {
     this.worker = new Worker(ENGINE_URL);
     this.listener = null;

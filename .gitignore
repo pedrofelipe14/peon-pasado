@@ -2,3 +2,4 @@ node_modules/
 dist/
 public/engine/
 public/openings.json
+public/opening-lines.json

@@ -3,6 +3,8 @@ import { Chess } from 'chess.js';
 import { Chessground } from '@lichess-org/chessground';
 import { CLASSES } from './analysis.js';
 import { THEMES, themeName, fromLichess, PuzzleRun, updateRating } from './puzzles.js';
+import { createOpenings } from './openingsMode.js';
+import { createMates } from './matesMode.js';
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -65,13 +67,14 @@ export function initTrainer() {
     hint: 0,
     busy: false,
     loadedOnce: false,
+    mode: store.get('pp:pz:mode', 'tactics'),
   };
 
   const cg = Chessground($('#pboard'), {
     coordinates: true,
     animation: { enabled: true, duration: 220 },
     highlight: { lastMove: true, check: true },
-    movable: { free: false, showDests: true, events: { after: onUserMove } },
+    movable: { free: false, showDests: true, events: { after: (o, d) => (st.mode === 'tactics' ? onUserMove(o, d) : modes[st.mode].onMove(o, d)) } },
     premovable: { enabled: false },
     draggable: { showGhost: true },
     drawable: {
@@ -117,20 +120,61 @@ export function initTrainer() {
     return map;
   }
 
-  function setPosition(fen, lastUci, interactive) {
+  /** Tablero compartido por los tres modos. movable: 'white' | 'black' | null */
+  function setBoard(fen, lastUci, { orientation, movable }) {
     const c = new Chess(fen);
     const turn = c.turn() === 'w' ? 'white' : 'black';
-    const me = st.run.color === 'w' ? 'white' : 'black';
     cg.set({
       fen,
       turnColor: turn,
-      orientation: me,
+      orientation,
       check: c.inCheck() ? turn : false,
       lastMove: lastUci ? [lastUci.slice(0, 2), lastUci.slice(2, 4)] : undefined,
-      movable: { color: interactive ? me : undefined, dests: interactive ? dests(fen) : new Map() },
+      movable: { color: movable ?? undefined, dests: movable ? dests(fen) : new Map() },
     });
     cg.setAutoShapes([]);
+  }
+
+  function setPosition(fen, lastUci, interactive) {
+    const me = st.run.color === 'w' ? 'white' : 'black';
+    setBoard(fen, lastUci, { orientation: me, movable: interactive ? me : null });
     st.lastUci = lastUci;
+  }
+
+  /* ---------- modos ---------- */
+  const ctx = { setBoard, shapes: (s) => cg.setAutoShapes(s), store, $, goTactics: (theme) => practiceTheme(theme) };
+  const modes = { openings: createOpenings(ctx), mates: createMates(ctx) };
+
+  function setMode(mode) {
+    st.mode = mode;
+    store.set('pp:pz:mode', mode);
+    document.querySelectorAll('.pz-modes button').forEach((b) => b.classList.toggle('on', b.dataset.mode === mode));
+    for (const m of ['tactics', 'openings', 'mates']) $(`#mode-${m}`).hidden = m !== mode;
+    if (mode === 'tactics') {
+      if (!st.loadedOnce) {
+        st.loadedOnce = true;
+        next();
+      } else if (st.run) {
+        setPosition(st.run.fen, st.lastUci, st.phase === 'solving' || st.phase === 'wrong');
+        render();
+      }
+    } else {
+      modes[mode].show();
+    }
+  }
+  document.querySelectorAll('.pz-modes button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode)));
+
+  /** Practicar un tema concreto de lichess (lo usan las lecciones de mates). */
+  function practiceTheme(theme) {
+    st.source = 'lichess';
+    st.queue = null;
+    st.theme = theme;
+    $('#pz-theme').value = theme;
+    store.set('pp:pz:source', 'lichess');
+    store.set('pp:pz:theme', theme);
+    st.loadedOnce = true;
+    setMode('tactics');
+    next();
   }
 
   async function next() {
@@ -339,16 +383,13 @@ export function initTrainer() {
     /** Se llama al abrir la pestaña. */
     show() {
       cg.redrawAll();
-      if (!st.loadedOnce) {
-        st.loadedOnce = true;
-        next();
-      } else {
-        renderSourceButtons();
-      }
+      setMode(st.mode);
     },
     /** Practicar una lista concreta (los errores de la partida analizada). */
     practice(list, label) {
       st.loadedOnce = true;
+      st.mode = 'tactics';
+      setMode('tactics');
       st.queue = [...list];
       st.queueLabel = label;
       next();

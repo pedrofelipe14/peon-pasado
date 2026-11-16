@@ -320,3 +320,19 @@ button.ghost { background: none; color: var(--muted); }
   .tabs { margin-left: auto; }
   .tabs a { padding: 6px 10px; }
 }
+
+/* ---------- modos de ejercicios ---------- */
+.pz-modes button { flex: 1; font-weight: 700; }
+.mode { display: flex; flex-direction: column; gap: 12px; }
+.op-mode button { flex: 1; }
+.op-name { font-weight: 700; color: #d9b98c; }
+.pz-msg.ok { color: var(--accent); }
+#mates h3 { margin: 4px 0 4px; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+#mates h3 + p { margin: 0 0 8px; }
+#mates .explain { margin: 10px 0 0; }
+#mates .actions { margin-top: 12px; }
+.lessons { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.lesson { display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 8px; text-align: left; background: var(--panel); padding: 11px 12px; }
+.lesson-check { color: var(--accent); font-weight: 800; }
+.back { background: none; border: 0; padding: 4px 0; color: var(--muted); }
+.back:hover { color: var(--text); }

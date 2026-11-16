@@ -11,6 +11,7 @@ const named = new Map(); // epd -> [eco, name, plies]
 const passed = new Map(); // epd -> [eco, name, plies] (shortest line through it)
 
 const epd = (fen) => fen.split(' ').slice(0, 4).join(' ');
+const lines = []; // [eco, name, "e2e4 e7e5 ..."] para el entrenador de aperturas
 
 for (const file of readdirSync(dir).filter((f) => f.endsWith('.tsv')).sort()) {
   const rows = readFileSync(join(dir, file), 'utf8').split('\n').slice(1);
@@ -20,6 +21,7 @@ for (const file of readdirSync(dir).filter((f) => f.endsWith('.tsv')).sort()) {
     const chess = new Chess();
     chess.loadPgn(pgn);
     const moves = chess.history();
+    lines.push([eco, name, chess.history({ verbose: true }).map((m) => m.lan).join(' ')]);
     const walk = new Chess();
     moves.forEach((san, i) => {
       walk.move(san);
@@ -41,4 +43,6 @@ for (const [k, v] of passed) out[k] = [v[0], v[1], 0];
 for (const [k, v] of named) out[k] = [v[0], v[1], 1];
 mkdirSync(join(root, 'public'), { recursive: true });
 writeFileSync(join(root, 'public', 'openings.json'), JSON.stringify(out));
+writeFileSync(join(root, 'public', 'opening-lines.json'), JSON.stringify(lines));
+console.log(`opening-lines.json: ${lines.length} lines`);
 console.log(`openings.json: ${Object.keys(out).length} positions`);

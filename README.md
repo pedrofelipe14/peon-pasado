@@ -16,11 +16,24 @@ Todo el análisis corre en tu navegador con [Stockfish](https://stockfishchess.o
 
 ## Ejercicios
 
-La pestaña **Ejercicios** tiene un tablero donde mueves las piezas, con pistas, «ver solución», un rating que va subiendo y una racha de aciertos. Todo se guarda en tu navegador.
+La pestaña **Ejercicios** tiene tres modos: Táctica, Aperturas y Mates.
+
+### Táctica
+
+El modo Táctica tiene un tablero donde mueves las piezas, con pistas, «ver solución», un rating que va subiendo y una racha de aciertos. Todo se guarda en tu navegador.
 
 - **Lichess**: ejercicios de la base pública de lichess. Puedes elegir el tema (mate en 2, ataque doble, clavada, finales…) y la dificultad.
 - **Mis errores**: cada error, error grave u oportunidad perdida de tus partidas analizadas se vuelve un ejercicio («En la partida jugaste Nf6. ¿Qué era mejor?»). Se guardan solo tus jugadas cuando la página sabe cuál es tu usuario.
 - **Del día**: el ejercicio diario de lichess.
+
+### Aperturas
+
+Eliges una apertura entre 19 (Italiana, Española, Gambito de dama, Londres, Siciliana, Francesa, Caro-Kann, India de rey…) y la juegas con tu color. El rival responde con variantes reales de la base de lichess, elegidas al azar, y la página te dice en qué variante estás. Hay dos modos: **Aprender**, donde una flecha te muestra la jugada principal y otras flechas las alternativas, y **Practicar**, donde juegas de memoria.
+
+### Mates
+
+- **Mates básicos contra el motor**: rey y dama, dos torres (la escalera) y rey y torre. Stockfish defiende lo mejor posible y la página te dice si ahogaste o si perdiste la pieza.
+- **Patrones de mate**: beso, pasillo, coz, Anastasia, árabe y Boden. Cada uno trae una explicación y un ejemplo para resolver, y después se practica con ejercicios reales de lichess de ese patrón.
 
 Al terminar un análisis, el botón «🧩 Practicar los errores de esta partida» te lleva directo a resolverlos.
 
