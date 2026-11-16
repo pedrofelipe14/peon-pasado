@@ -43,6 +43,8 @@ button { cursor: pointer; }
 .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text); font-weight: 800; font-size: 19px; letter-spacing: -.01em; }
 .brand svg { width: 30px; height: 30px; color: var(--accent); }
 .tag { color: var(--muted); font-size: 13px; }
+.icon-btn { background: var(--panel); border: 0; border-radius: var(--radius); font-size: 17px; line-height: 1; padding: 7px 9px; cursor: pointer; }
+.icon-btn:hover { background: var(--panel-2); }
 
 /* ---------- carga ---------- */
 .loader { width: 100%; max-width: 1180px; margin: 0 auto; padding: 18px 20px 6px; }

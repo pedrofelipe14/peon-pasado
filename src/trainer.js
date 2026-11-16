@@ -1,5 +1,6 @@
 // Pantalla de ejercicios: tablero jugable, pistas, rating y racha.
 import { Chess } from 'chess.js';
+import { transitionSound, moveSound, sfx } from './sound.js';
 import { Chessground } from '@lichess-org/chessground';
 import { CLASSES } from './analysis.js';
 import { THEMES, themeName, fromLichess, PuzzleRun, updateRating } from './puzzles.js';
@@ -74,11 +75,11 @@ export function initTrainer() {
     coordinates: true,
     animation: { enabled: true, duration: 220 },
     highlight: { lastMove: true, check: true },
-    movable: { free: false, showDests: true, events: { after: (o, d) => (st.mode === 'tactics' ? onUserMove(o, d) : modes[st.mode].onMove(o, d)) } },
+    movable: { free: false, showDests: true, events: { after: (o, d) => { userMoveSound(o, d); return st.mode === 'tactics' ? onUserMove(o, d) : modes[st.mode].onMove(o, d); } } },
     premovable: { enabled: false },
     draggable: { showGhost: true },
     drawable: {
-      enabled: false,
+      enabled: true, // flechas y círculos con el click derecho
       visible: true,
       brushes: { hint: { key: 'hnt', color: '#5c8fe0', opacity: 0.8, lineWidth: 10 } },
     },
@@ -120,8 +121,24 @@ export function initTrainer() {
     return map;
   }
 
+  let shownFen = null;
+  /** Sonido de la jugada que el usuario acaba de hacer en el tablero. */
+  function userMoveSound(orig, dest) {
+    try {
+      const c = new Chess(shownFen);
+      const m = c.move({ from: orig, to: dest, promotion: 'q' });
+      moveSound(m, c);
+      shownFen = c.fen();
+    } catch {}
+  }
+
   /** Tablero compartido por los tres modos. movable: 'white' | 'black' | null */
   function setBoard(fen, lastUci, { orientation, movable }) {
+    if (fen !== shownFen) {
+      transitionSound(shownFen, fen, lastUci);
+      if (shownFen) cg.setShapes([]);
+      shownFen = fen;
+    }
     const c = new Chess(fen);
     const turn = c.turn() === 'w' ? 'white' : 'black';
     cg.set({
@@ -142,7 +159,7 @@ export function initTrainer() {
   }
 
   /* ---------- modos ---------- */
-  const ctx = { setBoard, shapes: (s) => cg.setAutoShapes(s), store, $, goTactics: (theme) => practiceTheme(theme) };
+  const ctx = { sfx, setBoard, shapes: (s) => cg.setAutoShapes(s), store, $, goTactics: (theme) => practiceTheme(theme) };
   const modes = { openings: createOpenings(ctx), mates: createMates(ctx) };
 
   function setMode(mode) {
@@ -278,6 +295,7 @@ export function initTrainer() {
         ? `<b>${esc(res.san)}</b> es justo lo que jugaste en la partida. Busca otra cosa.`
         : `<b>${esc(res.san ?? '')}</b> no es la jugada. Inténtalo de nuevo.`;
       countResult(false);
+      sfx.error();
       render();
       await sleep(450);
       setPosition(before, st.lastUci, true);
@@ -289,6 +307,7 @@ export function initTrainer() {
     if (res.done) {
       st.phase = run.mistakes === 0 && !run.revealed ? 'solved' : 'failed';
       if (st.phase === 'solved') countResult(true);
+      setTimeout(sfx.good, 120);
       st.message = st.phase === 'solved' ? `<b>${esc(res.san)}</b>. ¡Correcto! Ejercicio resuelto.` : `<b>${esc(res.san)}</b>. Bien, llegaste a la solución.`;
       render();
       return;

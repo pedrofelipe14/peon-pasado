@@ -6,7 +6,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const epd = (fen) => fen.split(' ').slice(0, 4).join(' ');
 
-export function createOpenings({ setBoard, shapes, store, $ }) {
+export function createOpenings({ setBoard, shapes, store, $, sfx }) {
   const st = {
     family: store.get('pp:op:family', 'italiana'),
     mode: store.get('pp:op:mode', 'learn'),
@@ -147,6 +147,7 @@ export function createOpenings({ setBoard, shapes, store, $ }) {
       ? '¡Línea completa y sin errores! 🎉'
       : `Línea completa, con ${st.drill.errors} ${st.drill.errors === 1 ? 'error' : 'errores'}.`;
     st.msgKind = 'solved';
+    setTimeout(sfx.good, 150);
     render();
   }
 
@@ -163,6 +164,7 @@ export function createOpenings({ setBoard, shapes, store, $ }) {
     if (!st.drill.play(m.lan)) {
       st.msg = `<b>${esc(m.san)}</b> no es parte de la ${esc(fam().name)}. Prueba otra vez${st.mode === 'practice' ? ' (toca «Pista» si no te acuerdas)' : ''}.`;
       st.msgKind = 'wrong';
+      sfx.error();
       render();
       await sleep(400);
       draw(true);

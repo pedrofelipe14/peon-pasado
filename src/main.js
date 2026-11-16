@@ -13,6 +13,7 @@ import { parseInput, fetchLichessGame, findChessComGame, recentGames, LoadError 
 import { drawGraph, graphPlyAt } from './graph.js';
 import { mistakesFromGame } from './puzzles.js';
 import { initTrainer, saveMine } from './trainer.js';
+import { transitionSound, soundOn, setSound } from './sound.js';
 
 const $ = (sel) => document.querySelector(sel);
 const DEPTHS = {
@@ -58,12 +59,15 @@ const epd = (fen) => fen.split(' ').slice(0, 4).join(' ');
 
 /* ---------- tablero ---------- */
 const cg = Chessground($('#board'), {
-  viewOnly: true,
   coordinates: true,
+  movable: { free: false, color: undefined },
+  draggable: { enabled: false },
+  selectable: { enabled: false },
+  premovable: { enabled: false },
   animation: { enabled: true, duration: 180 },
   highlight: { lastMove: true, check: true },
   drawable: {
-    enabled: false,
+    enabled: true, // flechas y círculos con el click derecho
     visible: true,
     brushes: {
       best: { key: 'bst', color: '#7cbf4b', opacity: 0.85, lineWidth: 11 },
@@ -82,8 +86,14 @@ function badgeSvg(cls) {
 
 const arrow = (uci, brush) => ({ orig: uci.slice(0, 2), dest: uci.slice(2, 4), brush });
 
+let shownFen = null;
 function setBoard(fen, lastUci) {
   const turn = fen.split(' ')[1] === 'w' ? 'white' : 'black';
+  if (fen !== shownFen) {
+    transitionSound(shownFen, fen, lastUci);
+    if (shownFen) cg.setShapes([]); // las flechas del usuario son de esa posición
+    shownFen = fen;
+  }
   cg.set({
     fen,
     orientation: state.orientation,
@@ -774,6 +784,19 @@ function esc(s) {
 
 /* ---------- pestañas ---------- */
 const trainer = initTrainer();
+
+/* ---------- sonido ---------- */
+function renderSoundBtn() {
+  const b = $('#sound');
+  b.textContent = soundOn() ? '🔊' : '🔇';
+  b.title = soundOn() ? 'Silenciar sonidos' : 'Activar sonidos';
+  b.setAttribute('aria-pressed', String(soundOn()));
+}
+$('#sound').addEventListener('click', () => {
+  setSound(!soundOn());
+  renderSoundBtn();
+});
+renderSoundBtn();
 function showTab() {
   const puzzles = location.hash === '#ejercicios';
   $('#tab-review').hidden = puzzles;

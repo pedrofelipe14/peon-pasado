@@ -21,12 +21,13 @@
         <a href="#ejercicios" data-tab="puzzles">Ejercicios</a>
       </nav>
       <span class="tag">Stockfish en tu navegador · gratis</span>
+      <button id="sound" class="icon-btn" type="button" aria-label="Sonido"></button>
     </header>
 
     <main id="tab-puzzles" class="trainer" hidden>
       <div class="board-col">
         <div class="board-row"><div class="board-box pz-box"><div id="pboard" class="cgb"></div></div></div>
-        <p class="hint">Arrastra o toca las piezas para mover.</p>
+        <p class="hint">Arrastra o toca las piezas para mover · click derecho para dibujar flechas y círculos</p>
       </div>
       <aside class="panel">
         <div class="seg pz-modes" role="tablist" aria-label="Tipo de ejercicio">
@@ -120,7 +121,7 @@
           <button data-act="flip" title="Girar tablero (F)">⇅</button>
           <button data-act="engine" title="Muestra con una flecha azul la mejor jugada en la posición actual">Pista</button>
         </div>
-        <p class="hint">← → para moverte · toca cualquier jugada para verla · «Pista» muestra la mejor jugada en cada posición</p>
+        <p class="hint">← → para moverte · toca cualquier jugada para verla · «Pista» muestra la mejor jugada en cada posición · click derecho para dibujar flechas (Shift/Alt cambian el color)</p>
       </div>
 
       <aside id="review-panel" class="panel">

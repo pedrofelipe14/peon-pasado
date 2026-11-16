@@ -7,7 +7,7 @@ import { EngineWorker } from './engine.js';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
-export function createMates({ setBoard, shapes, store, $, goTactics }) {
+export function createMates({ setBoard, shapes, store, $, goTactics, sfx }) {
   const st = {
     lesson: null, // { kind: 'basic' | 'pattern', data }
     done: store.get('pp:mates:done', {}),
@@ -97,6 +97,7 @@ export function createMates({ setBoard, shapes, store, $, goTactics }) {
     }
     if (st.chess.isStalemate()) {
       st.phase = 'lost';
+      sfx.error();
       st.msg = '¡Ahogado! El rey rival no tiene jugadas y no está en jaque: son tablas. Deja siempre al menos una casilla libre hasta que puedas dar mate.';
       st.msgKind = 'wrong';
       draw(false);
@@ -116,6 +117,7 @@ export function createMates({ setBoard, shapes, store, $, goTactics }) {
     st.last = r.lan;
     if (st.chess.isInsufficientMaterial()) {
       st.phase = 'lost';
+      setTimeout(sfx.error, 250);
       st.msg = `El rey comió tu ${r.captured === 'q' ? 'dama' : 'torre'} con <b>${esc(r.san)}</b>: sin material no hay mate. Protege tus piezas o mantenlas lejos del rey.`;
       st.msgKind = 'wrong';
       draw(false);
@@ -134,6 +136,7 @@ export function createMates({ setBoard, shapes, store, $, goTactics }) {
     if (!res.ok) {
       st.msg = res.san ? `<b>${esc(res.san)}</b> no da mate. Prueba otra vez.` : '';
       st.msgKind = 'wrong';
+      sfx.error();
       render();
       await sleep(400);
       st.chess = new Chess(before);
